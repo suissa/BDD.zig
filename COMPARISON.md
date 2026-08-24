@@ -1,6 +1,6 @@
-# Comparativo de Cobertura Gherkin: Zig Comptime BDD vs Mercado
+# Comparativo de Cobertura Gherkin: BDD Gherkin.zig vs Mercado
 
-Este documento apresenta uma análise comparativa da cobertura da especificação **Gherkin** entre o seu projeto **Zig Comptime BDD (Zirkin)** e os 2 frameworks BDD mais populares e relevantes do mercado:
+Este documento apresenta uma análise comparativa da cobertura da especificação **Gherkin** entre o seu projeto **BDD Gherkin.zig (Zirkin)** e os 2 frameworks BDD mais populares e relevantes do mercado:
 
 1. **Cucumber** (O padrão ouro oficial da indústria, originalmente em Ruby/Java/JS).
 2. **Godog** (A implementação mais madura para linguagens compiladas estaticamente e concorrentes de baixo nível, feita em Golang).
@@ -13,7 +13,7 @@ Como não existem frameworks BDD nativos para Zig maduros no momento (sendo o Zi
 
 A especificação oficial do Gherkin define como os documentos devem ser estruturados. 
 
-| Keyword / Feature | Zig Comptime BDD | Cucumber | Godog (Go) | Notas sobre a sua implementação |
+| Keyword / Feature | BDD Gherkin.zig | Cucumber | Godog (Go) | Notas sobre a sua implementação |
 | :--- | :---: | :---: | :---: | :--- |
 | `Feature` | ✅ | ✅ | ✅ | Implementado com suporte a título único por arquivo. |
 | `Rule` | ✅ | ✅ | ✅ | Suporte a regras de negócio agrupadora de cenários. |
@@ -30,7 +30,7 @@ A especificação oficial do Gherkin define como os documentos devem ser estrutu
 
 Os passos são o núcleo da execução do BDD.
 
-| Keyword / Feature | Zig Comptime BDD | Cucumber | Godog (Go) | Notas sobre a sua implementação |
+| Keyword / Feature | BDD Gherkin.zig | Cucumber | Godog (Go) | Notas sobre a sua implementação |
 | :--- | :---: | :---: | :---: | :--- |
 | `Given`, `When`, `Then` | ✅ | ✅ | ✅ | Mapeado diretamente para binding de struct. |
 | `And`, `But` | ✅ | ✅ | ✅ | Herança do contexto semântico anterior funcionando perfeitamente. |
@@ -47,7 +47,7 @@ Os passos são o núcleo da execução do BDD.
 
 Aqui a comparação de como as abstrações conversam com o código real. 
 
-| Feature | Zig Comptime BDD | Cucumber | Godog (Go) |
+| Feature | BDD Gherkin.zig | Cucumber | Godog (Go) |
 | :--- | :---: | :---: | :---: |
 | **Tempo de Avaliação do BDD** | **Comptime (Compile-time)** | Runtime | Runtime |
 | **Binding dos Steps** | Reflection Simples (AST parser) | Regex / Cucumber Expressions | Regex / Cucumber Expressions |
