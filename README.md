@@ -5,7 +5,7 @@
 
 A minimal BDD/Gherkin framework for Zig that turns `.feature` specifications into executable, compile-time-validated test scenarios.
 
-`BDD-Gherkin.zig` uses Zig's `@embedFile` and `comptime` evaluation to parse a Gherkin feature file during compilation and transform it into executable steps that run against a Zig struct.
+`BDD.zig` uses Zig's `@embedFile` and `comptime` evaluation to parse a Gherkin feature file during compilation and transform it into executable steps that run against a Zig struct.
 
 The result is a small bridge between a human-readable specification and executable Zig code:
 
@@ -121,7 +121,7 @@ Scenario: Transfer within the balance
 
 Traditional Gherkin tooling usually parses this specification and maps each step to a separately registered step definition.
 
-`BDD-Gherkin.zig` takes a different approach.
+`BDD.zig` takes a different approach.
 
 Instead of requiring a large external step-definition system, it maps a restricted executable subset of Gherkin directly to members and methods of a Zig struct.
 
@@ -1203,7 +1203,7 @@ static validation
 low runtime overhead
 ```
 
-`BDD-Gherkin.zig` connects the two.
+`BDD.zig` connects the two.
 
 The resulting model is:
 
