@@ -5,6 +5,15 @@ const NodeKind = enum { Feature, Rule, Scenario, Step };
 const StepKeyword = enum { Given, When, Then };
 const StepAction = enum { Doc, SetFields, CallAction, ExpectField, ExpectError };
 
+pub const TableRow = struct {
+    cells: []const []const u8,
+};
+
+pub const StepPayload = struct {
+    doc_string: []const u8 = "",
+    table: []const TableRow = &.{},
+};
+
 const Step = struct {
     kind: NodeKind,
     semantic_keyword: StepKeyword = .Given,
@@ -17,6 +26,7 @@ const Step = struct {
     k2: []const u8 = "",
     v2: i32 = 0,
     expected_error_name: []const u8 = "",
+    payload: StepPayload = .{},
 };
 
 const RawStep = struct {
@@ -24,6 +34,7 @@ const RawStep = struct {
     shown_keyword: []const u8,
     text: []const u8,
     line_no: usize,
+    payload: StepPayload = .{},
 };
 
 const ParseMode = enum { None, FeatureBackground, RuleBackground, Scenario, ScenarioOutline, Examples };
@@ -182,7 +193,7 @@ fn parseSemanticStep(comptime raw: RawStep) Step {
         .Given => {
             const assignment_text = if (std.mem.startsWith(u8, body, "for ")) body[4..] else body;
             if (parseAssignments(assignment_text)) |parsed| {
-                return .{ .kind = .Step, .semantic_keyword = .Given, .shown_keyword = raw.shown_keyword, .action = .SetFields, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1, .k2 = parsed.k2, .v2 = parsed.v2 };
+                return .{ .kind = .Step, .semantic_keyword = .Given, .shown_keyword = raw.shown_keyword, .action = .SetFields, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1, .k2 = parsed.k2, .v2 = parsed.v2, .payload = raw.payload };
             }
         },
         .When => {
@@ -192,37 +203,37 @@ fn parseSemanticStep(comptime raw: RawStep) Step {
                 const action_name = trim(rest[0..idx_with]);
                 const arg = trim(rest[idx_with + 11 ..]);
                 if (parseI32Maybe(arg)) |parsed| {
-                    return .{ .kind = .Step, .semantic_keyword = .When, .shown_keyword = raw.shown_keyword, .action = .CallAction, .desc = desc, .k1 = action_name, .v1 = parsed };
+                    return .{ .kind = .Step, .semantic_keyword = .When, .shown_keyword = raw.shown_keyword, .action = .CallAction, .desc = desc, .k1 = action_name, .v1 = parsed, .payload = raw.payload };
                 }
             }
 
             if (parseCallAction(body)) |parsed| {
-                return .{ .kind = .Step, .semantic_keyword = .When, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1 };
+                return .{ .kind = .Step, .semantic_keyword = .When, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1, .payload = raw.payload };
             }
         },
         .Then => {
             if (std.mem.startsWith(u8, body, "for field ")) {
                 const rest = body[10..];
                 if (parseExpectedField(rest)) |parsed| {
-                    return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1 };
+                    return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1, .payload = raw.payload };
                 }
             }
 
             if (std.mem.startsWith(u8, body, "expect error ")) {
-                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = .ExpectError, .desc = desc, .expected_error_name = trim(body[13..]) };
+                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = .ExpectError, .desc = desc, .expected_error_name = trim(body[13..]), .payload = raw.payload };
             }
 
             if (std.mem.startsWith(u8, body, "error ")) {
-                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = .ExpectError, .desc = desc, .expected_error_name = trim(body[6..]) };
+                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = .ExpectError, .desc = desc, .expected_error_name = trim(body[6..]), .payload = raw.payload };
             }
 
             if (parseExpectedField(body)) |parsed| {
-                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1 };
+                return .{ .kind = .Step, .semantic_keyword = .Then, .shown_keyword = raw.shown_keyword, .action = parsed.action, .desc = desc, .k1 = parsed.k1, .v1 = parsed.v1, .payload = raw.payload };
             }
         },
     }
 
-    return .{ .kind = .Step, .semantic_keyword = raw.semantic_keyword, .shown_keyword = raw.shown_keyword, .action = .Doc, .desc = desc };
+    return .{ .kind = .Step, .semantic_keyword = raw.semantic_keyword, .shown_keyword = raw.shown_keyword, .action = .Doc, .desc = desc, .payload = raw.payload };
 }
 
 fn parseStepLine(comptime line: []const u8, comptime line_no: usize, comptime last_semantic: ?StepKeyword) ?RawStep {
@@ -326,6 +337,10 @@ fn outlineScenarioPasses(
             .shown_keyword = step.shown_keyword,
             .text = replacePlaceholders(step.text, headers, values, line_no),
             .line_no = step.line_no,
+            .payload = .{
+                .doc_string = replacePlaceholders(step.payload.doc_string, headers, values, line_no),
+                .table = step.payload.table,
+            },
         }};
     }
 
@@ -350,6 +365,12 @@ fn parseFeature(comptime text: []const u8) []const Step {
         var example_headers: []const []const u8 = &.{};
 
         var last_semantic: ?StepKeyword = null;
+        var pending_step: ?RawStep = null;
+        var pending_mode: ParseMode = .None;
+        var doc_string_open = false;
+        var doc_string_indent: usize = 0;
+        var doc_string: []const u8 = "";
+        var table_rows: []const TableRow = &.{};
         var line_no: usize = 0;
         var lines = std.mem.tokenizeScalar(u8, text, '\n');
 
@@ -357,6 +378,47 @@ fn parseFeature(comptime text: []const u8) []const Step {
             line_no += 1;
             const line = trim(raw_line);
             if (line.len == 0 or std.mem.startsWith(u8, line, "#")) continue;
+
+            if (pending_step != null) {
+                if (doc_string_open) {
+                    if (std.mem.eql(u8, line, "\"\"\"")) {
+                        doc_string_open = false;
+                    } else {
+                        var content = raw_line;
+                        var removed: usize = 0;
+                        while (removed < doc_string_indent and removed < content.len and (content[removed] == ' ' or content[removed] == '\t')) : (removed += 1) {}
+                        content = content[removed..];
+                        doc_string = doc_string ++ content ++ "\n";
+                    }
+                    continue;
+                }
+
+                if (std.mem.eql(u8, line, "\"\"\"")) {
+                    doc_string_open = true;
+                    doc_string_indent = 0;
+                    while (doc_string_indent < raw_line.len and (raw_line[doc_string_indent] == ' ' or raw_line[doc_string_indent] == '\t')) : (doc_string_indent += 1) {}
+                    doc_string = "";
+                    continue;
+                }
+
+                if (line[0] == '|') {
+                    table_rows = table_rows ++ .{TableRow{ .cells = parseTableRow(line, line_no) }};
+                    continue;
+                }
+
+                var completed = pending_step.?;
+                completed.payload = .{ .doc_string = doc_string, .table = table_rows };
+                switch (pending_mode) {
+                    .FeatureBackground => feature_background = feature_background ++ .{completed},
+                    .RuleBackground => rule_background = rule_background ++ .{completed},
+                    .Scenario => out = out ++ .{parseSemanticStep(completed)},
+                    .ScenarioOutline => outline_steps = outline_steps ++ .{completed},
+                    else => failAt(line_no, "step pendente em modo inválido"),
+                }
+                pending_step = null;
+                doc_string = "";
+                table_rows = &.{};
+            }
 
             const entering_primary = startsWithKeyword(line, "Feature") or
                 startsWithKeyword(line, "Rule") or
@@ -453,19 +515,28 @@ fn parseFeature(comptime text: []const u8) []const Step {
 
             if (parseStepLine(line, line_no, last_semantic)) |step| {
                 last_semantic = step.semantic_keyword;
-                switch (mode) {
-                    .FeatureBackground => feature_background = feature_background ++ .{step},
-                    .RuleBackground => rule_background = rule_background ++ .{step},
-                    .Scenario => out = out ++ .{parseSemanticStep(step)},
-                    .ScenarioOutline => outline_steps = outline_steps ++ .{step},
-                    .Examples => failAt(line_no, "steps não podem aparecer dentro da tabela Examples/Scenarios"),
-                    .None => failAt(line_no, "step precisa estar dentro de Background, Scenario ou Scenario Outline"),
-                }
+                pending_step = step;
+                pending_mode = mode;
+                if (mode == .Examples) failAt(line_no, "steps não podem aparecer dentro da tabela Examples/Scenarios");
+                if (mode == .None) failAt(line_no, "step precisa estar dentro de Background, Scenario ou Scenario Outline");
                 continue;
             }
 
             // Linhas descritivas livres são parte da linguagem Gherkin. Elas são preservadas como documentação,
             // mas este mini-runner não as executa.
+        }
+
+        if (doc_string_open) failAt(line_no, "doc string precisa ser fechada com \"\"\"");
+        if (pending_step) |pending| {
+            var completed = pending;
+            completed.payload = .{ .doc_string = doc_string, .table = table_rows };
+            switch (pending_mode) {
+                .FeatureBackground => feature_background = feature_background ++ .{completed},
+                .RuleBackground => rule_background = rule_background ++ .{completed},
+                .Scenario => out = out ++ .{parseSemanticStep(completed)},
+                .ScenarioOutline => outline_steps = outline_steps ++ .{completed},
+                else => failAt(line_no, "step pendente em modo inválido"),
+            }
         }
 
         if ((mode == .ScenarioOutline or mode == .Examples) and outline_title.len > 0 and !outline_has_example_rows) {
@@ -511,7 +582,14 @@ fn runBDD(comptime Contexto: type, comptime steps: []const Step) !void {
                     .CallAction => {
                         if (err == null) {
                             const metodo = @field(Contexto, step.k1);
-                            if (@call(.auto, metodo, .{ &ctx, step.v1 })) |_| {} else |e| {
+                            const resultado = switch (@typeInfo(@TypeOf(metodo))) {
+                                .@"fn" => |fn_info| if (fn_info.params.len == 3)
+                                    @call(.auto, metodo, .{ &ctx, step.v1, step.payload })
+                                else
+                                    @call(.auto, metodo, .{ &ctx, step.v1 }),
+                                else => @compileError("a action do step precisa ser uma função"),
+                            };
+                            if (resultado) |_| {} else |e| {
                                 err = e;
                             }
                         }
@@ -561,6 +639,15 @@ const ContaBancaria = struct {
     pub fn definirLimite(self: *ContaBancaria, valor: i32) !void {
         if (valor < 0) return error.ValorInvalido;
         self.limite = valor;
+        self.audit += 1;
+    }
+
+    pub fn registrar(self: *ContaBancaria, valor: i32, payload: StepPayload) !void {
+        if (valor != 1) return error.ValorInvalido;
+        if (!std.mem.eql(u8, payload.doc_string, "{\n  \"evento\": \"transferencia\"\n}\n")) return error.DocStringInvalida;
+        if (payload.table.len != 2 or payload.table[0].cells.len != 2 or payload.table[1].cells.len != 2) return error.TabelaInvalida;
+        if (!std.mem.eql(u8, payload.table[0].cells[0], "nome") or !std.mem.eql(u8, payload.table[0].cells[1], "valor")) return error.TabelaInvalida;
+        if (!std.mem.eql(u8, payload.table[1].cells[0], "Joao") or !std.mem.eql(u8, payload.table[1].cells[1], "30")) return error.TabelaInvalida;
         self.audit += 1;
     }
 };

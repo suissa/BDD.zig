@@ -1,4 +1,4 @@
-# BDD-Gherkin.zig
+# BDD.zig
 
 Mini-framework BDD para Zig que lê um arquivo `.feature` com `@embedFile`, faz parsing em `comptime` e executa os cenários contra uma struct Zig.
 
@@ -30,6 +30,8 @@ Mini-framework BDD para Zig que lê um arquivo `.feature` com `@embedFile`, faz 
 - `Scenario` e `Example` executam cenários comuns.
 - `Scenario Outline` e `Scenario Template` expandem uma execução por linha de `Examples`/`Scenarios`.
 - `And`, `But` e `*` herdam a keyword semântica anterior: `Given`, `When` ou `Then`.
+- Doc Strings com delimitadores `"""` são anexados ao step anterior.
+- Data Tables com linhas delimitadas por `|` são anexadas ao step anterior.
 - Linhas descritivas livres e comentários `#` são aceitos.
 
 ## Bindings executáveis suportados
@@ -60,6 +62,30 @@ Then expect error ValorInvalido
 ```
 
 Steps que não seguem esses formatos são tratados como documentais (`Doc`) e não alteram o estado.
+
+### Doc Strings e Data Tables
+
+Um step pode receber um doc string, uma tabela ou ambos. A action recebe o payload quando
+declara um terceiro parâmetro do tipo `StepPayload`; actions existentes com dois parâmetros
+continuam funcionando sem alteração.
+
+```gherkin
+When registrar(1)
+	"""
+	{"evento": "transferencia"}
+	"""
+	| nome | valor |
+	| Joao | 30    |
+```
+
+```zig
+pub fn registrar(self: *Conta, valor: i32, payload: StepPayload) !void {
+		_ = self;
+		_ = valor;
+		// payload.doc_string contém o texto sem a indentação estrutural.
+		// payload.table contém as linhas e células da tabela.
+}
+```
 
 ## Executar
 

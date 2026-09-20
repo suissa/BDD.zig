@@ -1,0 +1,1829 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BDD.zig · Compiler Observatory</title>
+<style>
+  /* =========================================================================
+     Compiler Observatory — visual theme
+     ========================================================================= */
+  :root{
+    --bg-0: #070b14;
+    --bg-1: #0b1220;
+    --bg-2: #0f1729;
+    --panel: rgba(15, 23, 41, 0.72);
+    --panel-border: rgba(120, 200, 255, 0.12);
+    --panel-glow: rgba(0, 200, 255, 0.08);
+
+    --text-0: #e6edf7;
+    --text-1: #aab7c8;
+    --text-2: #6f7d92;
+
+    --accent-cyan: #22d3ee;
+    --accent-mint: #4ade80;
+    --accent-violet: #a78bfa;
+    --accent-amber: #fbbf24;
+    --accent-orange: #fb923c;
+    --accent-rose: #fb7185;
+    --accent-blue: #60a5fa;
+
+    --kw-Feature: #a78bfa;
+    --kw-Rule: #22d3ee;
+    --kw-Background: #fbbf24;
+    --kw-Scenario: #fb923c;
+    --kw-ScenarioOutline: #fb7185;
+    --kw-Examples: #f472b6;
+    --kw-Given: #60a5fa;
+    --kw-When: #fbbf24;
+    --kw-Then: #4ade80;
+    --kw-And: #94a3b8;
+    --kw-But: #94a3b8;
+    --kw-Star: #94a3b8;
+
+    --shadow-1: 0 12px 32px rgba(0, 0, 0, 0.45);
+    --radius-1: 14px;
+    --radius-2: 10px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: radial-gradient(ellipse at top, #0a1224 0%, #050810 65%);
+    color: var(--text-0);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before{
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(80,140,200,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(80,140,200,0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after{
+    content: "";
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(34,211,238,0.10), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* =========================================================================
+     Layout — compact: cada cena deve caber inteira na tela desktop
+     ========================================================================= */
+  .stage{
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px 24px 18px;
+  }
+
+  header.hero{
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .eyebrow{
+    color: var(--accent-cyan);
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1{
+    font-size: clamp(20px, 2.4vw, 28px);
+    margin: 0 0 4px;
+    line-height: 1.15;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 70%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.02em;
+  }
+  h1 .tag{
+    display: inline-block;
+    background: linear-gradient(135deg, #c084fc, #22d3ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitle{
+    color: var(--text-1);
+    font-size: 12.5px;
+    max-width: 720px;
+    margin: 0 auto;
+    line-height: 1.45;
+  }
+
+  /* Scene rail */
+  .scene-rail{
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 12px 0 10px;
+    flex-wrap: wrap;
+  }
+  .scene-tab{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text-1);
+    padding: 5px 11px;
+    font-size: 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-family: inherit;
+    backdrop-filter: blur(8px);
+  }
+  .scene-tab:hover{
+    border-color: var(--accent-cyan);
+    color: var(--text-0);
+    transform: translateY(-1px);
+  }
+  .scene-tab.active{
+    background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(167,139,250,0.18));
+    border-color: var(--accent-cyan);
+    color: #fff;
+    box-shadow: 0 0 24px rgba(34,211,238,0.3);
+  }
+  .scene-num{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-cyan);
+    margin-right: 5px;
+    font-weight: 600;
+  }
+
+  /* Scene container */
+  .scene{
+    display: none;
+    animation: scene-in .4s ease;
+  }
+  .scene.active{ display: block; }
+  @keyframes scene-in{
+    from{ opacity:0; transform: translateY(12px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  /* =========================================================================
+     Panel — common (compact)
+     ========================================================================= */
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-1);
+    box-shadow: var(--shadow-1);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+  }
+  .panel-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--panel-border);
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .panel-title{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-1);
+    font-weight: 500;
+  }
+  .panel-dots{
+    display: flex;
+    gap: 4px;
+  }
+  .panel-dots span{
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #2a3548;
+  }
+  .panel-dots span.r{ background: #fb7185; }
+  .panel-dots span.y{ background: #fbbf24; }
+  .panel-dots span.g{ background: #4ade80; }
+
+  /* =========================================================================
+     Scene 1 — Hero / Promise (compact)
+     ========================================================================= */
+  .promise-grid{
+    display: grid;
+    grid-template-columns: 1fr 50px 1fr;
+    gap: 14px;
+    margin-top: 8px;
+    align-items: stretch;
+  }
+  @media (max-width: 900px){
+    .promise-grid{ grid-template-columns: 1fr; }
+    .promise-arrow{ display: none; }
+  }
+
+  .file-card{
+    display: flex;
+    flex-direction: column;
+    min-height: 230px;
+  }
+  .file-card .body{
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre;
+    color: var(--text-0);
+    flex: 1;
+  }
+  .file-card .filename{
+    color: var(--accent-cyan);
+  }
+  .file-card pre{
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  .kw{
+    font-weight: 600;
+  }
+  .kw-Feature{ color: var(--kw-Feature); }
+  .kw-Rule{ color: var(--kw-Rule); }
+  .kw-Background{ color: var(--kw-Background); }
+  .kw-Scenario{ color: var(--kw-Scenario); }
+  .kw-ScenarioOutline{ color: var(--kw-ScenarioOutline); }
+  .kw-Examples{ color: var(--kw-Examples); }
+  .kw-Given{ color: var(--kw-Given); }
+  .kw-When{ color: var(--kw-When); }
+  .kw-Then{ color: var(--kw-Then); }
+  .kw-And,
+  .kw-But,
+  .kw-Star{ color: var(--kw-And); }
+  .comment{ color: #54627a; font-style: italic; }
+  .placeholder{ color: #f472b6; font-weight: 600; }
+  .pipe{ color: #475569; }
+
+  .promise-arrow{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .promise-arrow svg{
+    width: 100%;
+    height: 40px;
+  }
+  .arrow-path{
+    stroke-dasharray: 6 6;
+    animation: dash 1.2s linear infinite;
+  }
+  @keyframes dash{
+    to{ stroke-dashoffset: -24; }
+  }
+
+  .code-card .body{
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-0);
+  }
+  .code-comment{ color: #54627a; font-style: italic; }
+  .code-keyword{ color: #c084fc; }
+  .code-fn{ color: var(--accent-cyan); }
+  .code-str{ color: #86efac; }
+  .code-num{ color: #fbbf24; }
+  .code-ident{ color: #e6edf7; }
+  .code-punct{ color: #94a3b8; }
+
+  .callout{
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-2);
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(34,211,238,0.06));
+    border: 1px solid rgba(74,222,128,0.25);
+    color: var(--text-0);
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .callout strong{ color: var(--accent-mint); }
+  .callout ol,
+  .callout ul{ margin: 6px 0 0; padding-left: 22px; line-height: 1.6; color: var(--text-1); }
+  .callout code{
+    background: rgba(0,0,0,0.35);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent-mint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* =========================================================================
+     Scenes 2, 3 — keyword browser & comptime pipeline (compact)
+     ========================================================================= */
+  .keyword-grid{
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  @media (max-width: 1100px){
+    .keyword-grid{ grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 700px){
+    .keyword-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+  .kw-card{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-2);
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: transform .2s ease, border-color .2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .kw-card::before{
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kw-color, var(--accent-cyan));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .3s ease;
+  }
+  .kw-card:hover{ transform: translateY(-2px); border-color: var(--kw-color, var(--accent-cyan)); }
+  .kw-card:hover::before{ transform: scaleX(1); }
+  .kw-card .kw-label{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--kw-color);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kw-card .kw-desc{
+    color: var(--text-1);
+    font-size: 11px;
+    line-height: 1.35;
+    min-height: 44px;
+  }
+  .kw-card .kw-alias{
+    margin-top: 4px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-2);
+  }
+  .kw-card .kw-alias b{ color: var(--accent-amber); font-weight: 500; }
+
+  /* pipeline */
+  .pipeline{
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+  @media (max-width: 900px){
+    .pipeline{ grid-template-columns: 1fr; }
+  }
+  .pipe-row{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  @media (max-width: 700px){
+    .pipe-row{ grid-template-columns: 1fr; }
+  }
+  .pipe-step{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-2);
+    padding: 10px 12px;
+    position: relative;
+  }
+  .pipe-step .step-num{
+    position: absolute;
+    top: -8px;
+    left: 10px;
+    background: var(--bg-0);
+    border: 1px solid var(--kw-color, var(--accent-cyan));
+    color: var(--kw-color, var(--accent-cyan));
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .pipe-step .step-title{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--kw-color, var(--accent-cyan));
+    font-weight: 600;
+    font-size: 12px;
+    margin: 4px 0 4px;
+    letter-spacing: 0.02em;
+  }
+  .pipe-step .step-body{
+    color: var(--text-1);
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+  .pipe-step .step-tag{
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(34,211,238,0.12);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(34,211,238,0.3);
+  }
+  .pipe-step.comptime .step-tag{
+    background: rgba(167,139,250,0.15);
+    color: var(--accent-violet);
+    border-color: rgba(167,139,250,0.3);
+  }
+
+  /* Why panel — additional 4th block, vertical next to pipeline */
+  .why{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-2);
+    padding: 12px 14px;
+    color: var(--text-1);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .why h5{
+    margin: 0 0 8px;
+    color: var(--accent-cyan);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .why ul{
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.7;
+  }
+  .why strong{ color: var(--text-0); }
+  .why code{
+    background: rgba(0,0,0,0.35);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent-mint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .why-cta{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    color: var(--text-1);
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  .why-cta strong{ color: var(--accent-mint); }
+
+  /* =========================================================================
+     Scene 4 — Live execution walkthrough (compact)
+     ========================================================================= */
+  .walkthrough{
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  @media (max-width: 1100px){
+    .walkthrough{ grid-template-columns: 1fr; }
+  }
+  .walk-source{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    padding: 8px 10px;
+    line-height: 1.6;
+    overflow: auto;
+    max-height: 280px;
+  }
+  .walk-source .line{
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 8px;
+    padding: 0 4px;
+    border-radius: 3px;
+    transition: background .3s ease;
+  }
+  .walk-source .line.active{
+    background: rgba(34,211,238,0.12);
+    box-shadow: inset 3px 0 0 var(--accent-cyan);
+  }
+  .walk-source .line.done{
+    color: var(--text-2);
+  }
+  .walk-source .line-num{
+    color: var(--text-2);
+    text-align: right;
+  }
+  .walk-source .line.done .line-num{ color: #2a3548; }
+
+  .walk-state{
+    padding: 8px 10px;
+    max-height: 280px;
+    overflow: auto;
+  }
+  .walk-state h4{
+    font-size: 11px;
+    color: var(--text-1);
+    margin: 0 0 8px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .field-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 5px;
+    border: 1px solid transparent;
+    transition: all .3s ease;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .field-row.changed{
+    border-color: var(--accent-mint);
+    background: rgba(74,222,128,0.10);
+    animation: pulse-field .8s ease;
+  }
+  @keyframes pulse-field{
+    0%{ transform: scale(1); }
+    50%{ transform: scale(1.04); box-shadow: 0 0 24px rgba(74,222,128,0.5); }
+    100%{ transform: scale(1); }
+  }
+  .field-row .fname{ color: var(--accent-cyan); }
+  .field-row .fvalue{ color: #fff; font-weight: 600; }
+
+  .err-box{
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: rgba(251,113,133,0.10);
+    border: 1px solid rgba(251,113,133,0.3);
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-rose);
+    display: none;
+  }
+  .err-box.visible{ display: block; }
+
+  .walk-terminal{
+    padding: 8px 10px;
+    max-height: 280px;
+    overflow: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: #03060c;
+    line-height: 1.5;
+  }
+  .term-line{
+    margin-bottom: 1px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  .term-feature{ color: #c084fc; }
+  .term-rule{ color: #22d3ee; }
+  .term-scenario{ color: #fb923c; }
+  .term-step{ color: #4ade80; }
+  .term-pass{ color: #4ade80; font-weight: 600; }
+  .term-fail{ color: #fb7185; font-weight: 600; }
+  .term-doc{ color: #6f7d92; }
+  .term-prompt{ color: #60a5fa; }
+
+  /* Walk controls */
+  .walk-controls{
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-2);
+  }
+  .btn{
+    background: rgba(34,211,238,0.10);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(34,211,238,0.35);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .btn:hover{
+    background: rgba(34,211,238,0.20);
+    transform: translateY(-1px);
+  }
+  .btn.primary{
+    background: linear-gradient(135deg, rgba(34,211,238,0.30), rgba(167,139,250,0.30));
+    border-color: var(--accent-cyan);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(34,211,238,0.25);
+  }
+  .btn[disabled]{ opacity: .4; cursor: not-allowed; transform: none; }
+  .progress-pill{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-1);
+    margin-left: auto;
+  }
+  .progress-pill b{ color: var(--accent-cyan); }
+
+  /* =========================================================================
+     Scene 5 — Try It (interactive editor, compact)
+     ========================================================================= */
+  .tryit{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  @media (max-width: 1000px){
+    .tryit{ grid-template-columns: 1fr; }
+  }
+  .editor{
+    background: #03060c;
+    border-radius: var(--radius-2);
+    border: 1px solid var(--panel-border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .editor-head{
+    background: rgba(0,0,0,0.4);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .editor textarea{
+    width: 100%;
+    flex: 1;
+    min-height: 180px;
+    background: transparent;
+    color: var(--text-0);
+    border: 0;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+  }
+  .editor-helper{
+    padding: 6px 12px;
+    font-size: 10.5px;
+    color: var(--text-2);
+    background: rgba(0,0,0,0.25);
+    border-top: 1px solid var(--panel-border);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tryit-output{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tryit-card{
+    padding: 10px 12px;
+    border-radius: var(--radius-2);
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+  }
+  .tryit-card h4{
+    margin: 0 0 8px;
+    font-size: 11px;
+    color: var(--text-1);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .preset-row{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .preset{
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--panel-border);
+    color: var(--text-0);
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .preset:hover{ border-color: var(--accent-cyan); background: rgba(34,211,238,0.10); }
+  .tryit-term{
+    min-height: 140px;
+    max-height: 220px;
+    overflow: auto;
+    background: #03060c;
+    border-radius: var(--radius-2);
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* =========================================================================
+     Bottom takeaway — compact
+     ========================================================================= */
+  .takeaway{
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.08), rgba(167,139,250,0.05));
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: var(--radius-1);
+    text-align: center;
+  }
+  .takeaway h3{
+    margin: 0 0 4px;
+    color: var(--accent-cyan);
+    font-size: 13px;
+  }
+  .takeaway p{
+    margin: 0;
+    color: var(--text-1);
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+  .takeaway code{
+    background: rgba(0,0,0,0.3);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent-mint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* =========================================================================
+     Section h3 headers inside scenes (compact)
+     ========================================================================= */
+  .scene h3{
+    color: var(--text-1);
+    margin: 10px 0 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 600;
+  }
+  .scene > p{
+    margin: 0;
+    color: var(--text-1);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Scroll styling */
+  ::-webkit-scrollbar{ width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+  ::-webkit-scrollbar-thumb{
+    background: rgba(120,140,170,0.2);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover{
+    background: rgba(120,140,170,0.4);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ============================ HEADER ============================ -->
+  <header class="hero">
+    <div class="eyebrow">Compiler Observatory · BDD.zig</div>
+    <h1>Como usar o <span class="tag">BDD.zig</span></h1>
+    <p class="subtitle">
+      Um mini-framework BDD em Zig que transforma um arquivo <code>.feature</code>
+      em testes nativos, parseados em <strong>comptime</strong> e executados contra
+      uma struct Zig. Cinco cenários, todos interativos.
+    </p>
+  </header>
+
+  <!-- ============================ SCENE RAIL ============================ -->
+  <nav class="scene-rail" id="sceneRail">
+    <button class="scene-tab active" data-scene="1"><span class="scene-num">01</span>O que é</button>
+    <button class="scene-tab" data-scene="2"><span class="scene-num">02</span>As 15 keywords</button>
+    <button class="scene-tab" data-scene="3"><span class="scene-num">03</span>Pipeline comptime</button>
+    <button class="scene-tab" data-scene="4"><span class="scene-num">04</span>Execução ao vivo</button>
+    <button class="scene-tab" data-scene="5"><span class="scene-num">05</span>Experimente</button>
+  </nav>
+
+  <!-- ====================================================================
+       SCENE 1 — A promessa
+       ==================================================================== -->
+  <section class="scene active" data-scene="1">
+
+    <div class="promise-grid">
+
+      <div class="panel file-card">
+        <div class="panel-header">
+          <span class="panel-title"><span class="filename">testes.feature</span></span>
+          <div class="panel-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        </div>
+        <div class="body">
+<pre><span class="kw kw-Feature">Feature:</span> Transferência bancária
+
+  <span class="kw kw-Background">Background:</span>
+    <span class="kw kw-Given">Given</span> saldo = 100
+    <span class="kw kw-And">And</span> limite = 50
+
+  <span class="kw kw-Rule">Rule:</span> Transferência simples
+    <span class="kw kw-Scenario">Scenario:</span> Sacar 30
+      <span class="kw kw-When">When</span> transferir(30)
+      <span class="kw kw-Then">Then</span> saldo == 70</pre>
+        </div>
+      </div>
+
+      <div class="promise-arrow" aria-hidden="true">
+        <svg viewBox="0 0 60 60">
+          <defs>
+            <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#22d3ee" />
+              <stop offset="100%" stop-color="#a78bfa" />
+            </linearGradient>
+          </defs>
+          <path class="arrow-path"
+                d="M 5 30 L 45 30 L 40 25 M 45 30 L 40 35"
+                fill="none" stroke="url(#arrowGrad)" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <div class="panel code-card">
+        <div class="panel-header">
+          <span class="panel-title">main.zig</span>
+          <div class="panel-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        </div>
+        <div class="body">
+<pre><span class="code-comment">// O arquivo vira parte do binário em compile-time</span>
+<span class="code-keyword">const</span> <span class="code-ident">feature</span> <span class="code-punct">=</span> <span class="code-fn">@embedFile</span>(<span class="code-str">"testes.feature"</span>);
+
+<span class="code-comment">// parseFeature roda em comptime → array de steps</span>
+<span class="code-keyword">const</span> <span class="code-ident">steps</span> <span class="code-punct">=</span> <span class="code-keyword">comptime</span> <span class="code-fn">parseFeature</span>(<span class="code-ident">feature</span>);
+
+<span class="code-comment">// Cada step roda contra sua struct</span>
+<span class="code-keyword">try</span> <span class="code-fn">runBDD</span>(<span class="code-ident">ContaBancaria</span>, <span class="code-ident">steps</span>);</pre>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout">
+      <strong>O ponto-chave:</strong> o arquivo <code>.feature</code> é embutido no binário
+      e parseado em <em>tempo de compilação</em>. Erros de keyword, placeholders errados e
+      steps quebrados viram <code>@compileError</code> — você descobre antes mesmo de rodar.
+      <br><br>
+      Para usar: <strong>1)</strong> escreva seu <code>meu.feature</code> com Gherkin →
+      <strong>2)</strong> defina uma struct Zig com os mesmos campos e ações →
+      <strong>3)</strong> rode <code>zig test main.zig</code>.
+    </div>
+
+  </section>
+
+  <!-- ====================================================================
+       SCENE 2 — As 15 keywords
+       ==================================================================== -->
+  <section class="scene" data-scene="2">
+    <p>
+      Passe o mouse sobre cada card para entender a função. Aliases compartilham
+      a mesma forma mas ganham nome diferente para legibilidade.
+    </p>
+
+    <h3>Keywords primárias (estrutura)</h3>
+    <div class="keyword-grid">
+      <div class="kw-card" style="--kw-color: var(--kw-Feature);">
+        <div class="kw-label">Feature</div>
+        <div class="kw-desc">Obrigatória. Primeira linha do arquivo. Só uma por arquivo.</div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-Rule);">
+        <div class="kw-label">Rule</div>
+        <div class="kw-desc">Escopo lógico. Reinicia o Background local da regra.</div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-Background);">
+        <div class="kw-label">Background</div>
+        <div class="kw-desc">Steps comuns que rodam antes de cada Scenario/Example.</div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-Scenario);">
+        <div class="kw-label">Scenario</div>
+        <div class="kw-desc">Sequência de Given/When/Then que testa um comportamento.</div>
+        <div class="kw-alias">alias: <b>Example</b></div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-ScenarioOutline);">
+        <div class="kw-label">Scenario Outline</div>
+        <div class="kw-desc">Template parametrizado. Expande uma execução por linha de Examples.</div>
+        <div class="kw-alias">alias: <b>Scenario Template</b></div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-Examples);">
+        <div class="kw-label">Examples</div>
+        <div class="kw-desc">Tabela de dados que alimenta placeholders &lt;como&gt; este.</div>
+        <div class="kw-alias">alias: <b>Scenarios</b></div>
+      </div>
+    </div>
+
+    <h3>Keywords semânticas (steps)</h3>
+    <div class="keyword-grid">
+      <div class="kw-card" style="--kw-color: var(--kw-Given);">
+        <div class="kw-label">Given</div>
+        <div class="kw-desc">Define o estado inicial. Aceita <code>campo = valor</code> e <code>campo = valor and campo = valor</code>.</div>
+        <div class="kw-alias">forma: <code>Given saldo = 100</code></div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-When);">
+        <div class="kw-label">When</div>
+        <div class="kw-desc">Dispara uma ação. Aceita <code>nome(valor)</code> ou <code>nome valor</code>.</div>
+        <div class="kw-alias">forma: <code>When transferir(30)</code></div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-Then);">
+        <div class="kw-label">Then</div>
+        <div class="kw-desc">Verifica o resultado. Aceita <code>campo == valor</code>, <code>campo expect valor</code> ou <code>error NomeDoErro</code>.</div>
+        <div class="kw-alias">forma: <code>Then saldo == 70</code></div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-And);">
+        <div class="kw-label">And</div>
+        <div class="kw-desc">Continua a keyword anterior (Given / When / Then).</div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-And);">
+        <div class="kw-label">But</div>
+        <div class="kw-desc">Igual a And, mas semanticamente "ainda". Herda a keyword anterior.</div>
+      </div>
+      <div class="kw-card" style="--kw-color: var(--kw-And);">
+        <div class="kw-label">*</div>
+        <div class="kw-desc">Asterisco universal. Herda a última keyword semântica (Given/When/Then).</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Três regras de ouro:</strong>
+      <ol style="margin: 8px 0 0; padding-left: 22px; line-height:1.7; color: var(--text-1);">
+        <li><strong style="color:var(--kw-Feature);">Feature</strong> deve ser a primeira primária do arquivo.</li>
+        <li><strong style="color:var(--kw-And);">And</strong>, <strong style="color:var(--kw-And);">But</strong> e <strong style="color:var(--kw-And);">*</strong> precisam de um Given/When/Then antes — herdam o significado.</li>
+        <li>Steps que não seguem os formatos viram <strong style="color:var(--text-0);">Doc</strong> — documentação livre que não altera o estado.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       SCENE 3 — Pipeline comptime
+       ==================================================================== -->
+  <section class="scene" data-scene="3">
+    <p>
+      Do texto Gherkin até a execução nativa, tudo passa por três etapas. A diferença
+      crítica do framework: <strong style="color:var(--accent-violet);">a primeira e a
+      segunda rodam em comptime</strong>, antes do binário existir.
+    </p>
+
+    <div class="pipeline">
+
+      <div class="pipe-row">
+
+        <div class="pipe-step" style="--kw-color: var(--accent-amber);">
+          <div class="step-num">1</div>
+          <div class="step-title">runtime · texto bruto</div>
+          <div class="step-body">
+            Seu arquivo <code style="color:var(--accent-cyan);">.feature</code> mora no disco.
+            Você edita, versiona, revisa. Nada de especial.
+          </div>
+          <div class="step-tag">testes.feature</div>
+        </div>
+
+        <div class="pipe-step comptime" style="--kw-color: var(--accent-violet);">
+          <div class="step-num">2</div>
+          <div class="step-title">comptime · embed + parse</div>
+          <div class="step-body">
+            <code style="color:var(--accent-cyan);">@embedFile</code> traz o texto para dentro do
+            binário. <code style="color:var(--accent-cyan);">comptime parseFeature()</code> varre
+            linhas, classifica keywords e constrói um <code>[]const Step</code>.
+          </div>
+          <div class="step-tag">compilação · falha rápido</div>
+        </div>
+
+        <div class="pipe-step" style="--kw-color: var(--accent-cyan);">
+          <div class="step-num">3</div>
+          <div class="step-title">runtime · executar</div>
+          <div class="step-body">
+            <code style="color:var(--accent-cyan);">runBDD()</code> percorre o array.
+            Cada <code style="color:var(--accent-cyan);">Given</code> mexe em campo via <code style="color:var(--accent-cyan);">@field</code>.
+            Cada <code style="color:var(--accent-cyan);">When</code> invoca a action via <code style="color:var(--accent-cyan);">@call</code>.
+          </div>
+          <div class="step-tag">binary execution</div>
+        </div>
+
+      </div>
+
+      <aside class="why">
+        <h5>Por que isso importa</h5>
+        <p style="margin: 0 0 6px; font-size: 11.5px; line-height: 1.5;">Em frameworks BDD
+          tradicionais (Cucumber, Gherkin puro), o parse acontece em
+          <strong>runtime</strong>. Aqui, <strong>tudo que pode quebrar</strong> vira
+          <code>@compileError</code> antes do binário existir:</p>
+        <ul>
+          <li><strong style="color:var(--accent-rose);">Feature</strong> fora do topo</li>
+          <li><strong style="color:var(--accent-rose);">And/But/*</strong> sem G/W/T anterior</li>
+          <li><strong style="color:var(--accent-rose);">Scenario Outline</strong> sem Examples</li>
+          <li><strong style="color:var(--accent-rose);">&lt;placeholder&gt;</strong> sem coluna</li>
+        </ul>
+        <p class="why-cta">
+          E o melhor: <code>@embedFile</code> faz seu <code>.feature</code>
+          viajar <strong>dentro</strong> do binário — sem leitura em runtime, sem
+          caminho relativo, sem "funciona na minha máquina".
+        </p>
+      </aside>
+
+    </div>
+
+  </section>
+
+  <!-- ====================================================================
+       SCENE 4 — Execução ao vivo
+       ==================================================================== -->
+  <section class="scene" data-scene="4">
+    <p>
+      Aperte <strong style="color:var(--text-0);">▶ Play</strong> e veja um Scenario real rodar
+      passo a passo. A struct à direita mostra o estado, o terminal embaixo mostra a saída
+      colorida, e a linha ativa do código fica em destaque.
+    </p>
+
+    <div class="walkthrough">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">testes.feature (trecho)</span>
+          <div class="panel-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        </div>
+        <div class="walk-source" id="walkSource"><!-- filled by JS --></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">ContaBancaria · estado</span>
+          <div class="panel-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        </div>
+        <div class="walk-state" id="walkState">
+          <h4>Campos da struct</h4>
+          <div id="fieldsBox"></div>
+          <div class="err-box" id="errBox"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">stdout</span>
+          <div class="panel-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        </div>
+        <div class="walk-terminal" id="walkTerm"></div>
+      </div>
+    </div>
+
+    <div class="walk-controls">
+      <button class="btn primary" id="btnPlay">▶ Play</button>
+      <button class="btn" id="btnNext">Próximo passo →</button>
+      <button class="btn" id="btnReset">↺ Reset</button>
+      <span class="progress-pill">step <b id="stepCur">0</b> / <b id="stepTotal">0</b></span>
+    </div>
+
+  </section>
+
+  <!-- ====================================================================
+       SCENE 5 — Try it
+       ==================================================================== -->
+  <section class="scene" data-scene="5">
+    <p>
+      Edite um mini-feature, escolha um preset ou escreva do zero. A simulação
+      mostra apenas os formatos que <code>parseFeature</code> entende de verdade —
+      qualquer invenção vira <strong style="color:var(--accent-rose);">Doc</strong>
+      (documentação ignorada) ou falha de parsing.
+    </p>
+
+    <div class="tryit">
+
+      <div class="editor">
+        <div class="editor-head">seu.feature · simulado</div>
+        <textarea id="tryitSource" spellcheck="false">Feature: Teste rápido
+
+  Background:
+    Given saldo = 100
+    And limite = 0
+
+  Rule: depósito
+    Example: somar 10 fica 110
+      When depositar(10)
+      Then saldo == 110</textarea>
+        <div class="editor-helper">use Given/When/Then, And/But/* e Example/Scenario/Scenarios</div>
+      </div>
+
+      <div class="tryit-output">
+        <div class="tryit-card">
+          <h4>Presets</h4>
+          <div class="preset-row">
+            <button class="preset" data-preset="ok">Teste válido</button>
+            <button class="preset" data-preset="outline">Outline + Examples</button>
+            <button class="preset" data-preset="alias">Example + Scenarios</button>
+            <button class="preset" data-preset="err">Then error (erro nativo)</button>
+            <button class="preset" data-preset="doc">Steps documentais</button>
+            <button class="preset" data-preset="asterisk">* asterisco</button>
+          </div>
+        </div>
+
+        <div class="tryit-card">
+          <h4>Resultado simulado</h4>
+          <div class="walk-terminal tryit-term" id="tryitTerm"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="takeaway">
+      <h3>Próximos passos</h3>
+      <p>
+        1. Copie um preset acima e rode <code>zig test main.zig</code> no repositório.<br>
+        2. Adicione sua própria struct em <code>main.zig</code> com os nomes de campos
+        e métodos que aparecem no Gherkin.<br>
+        3. Versione o <code>.feature</code> junto: agora ele faz parte do seu teste.
+      </p>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+/* =========================================================================
+   Scene router
+   ========================================================================= */
+const tabs = document.querySelectorAll('.scene-tab');
+const scenes = document.querySelectorAll('.scene');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    scenes.forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    const n = tab.dataset.scene;
+    document.querySelector(`.scene[data-scene="${n}"]`).classList.add('active');
+    window.scrollTo({ top: document.querySelector('.scene-rail').offsetTop - 20, behavior:'smooth' });
+  });
+});
+
+/* =========================================================================
+   Scene 4 — live walkthrough
+   The walk is a tiny JS re-implementation of runBDD over the same scenario
+   so that animation timings stay in lock-step with the actual Zig behaviour.
+   ========================================================================= */
+const walkData = {
+  /* The raw feature, kept verbatim from testes.feature so what you see is
+     exactly what the parser sees. */
+  source: [
+    { raw: '  Background:', type: 'header', kw: 'Background' },
+    { raw: '    Given saldo = 100', type: 'step', kw: 'Given', desc: 'saldo = 100', semantic: 'Given',
+      line_no: 7 },
+    { raw: '    And limite = 50', type: 'step', kw: 'And', desc: 'limite = 50', semantic: 'Given',
+      line_no: 8 },
+    { raw: '', type: 'blank' },
+    { raw: '  Rule: asterisco herda keyword', type: 'rule', kw: 'Rule', name: 'asterisco herda keyword' },
+    { raw: '    Scenario: estrela funciona como Given/When/Then', type: 'scenario', kw: 'Scenario',
+      name: 'estrela funciona como Given/When/Then', line_no: 36 },
+    { raw: '      Given saldo = 10', type: 'step', kw: 'Given', desc: 'saldo = 10', semantic: 'Given' },
+    { raw: '      * limite = 0', type: 'step', kw: '*', desc: 'limite = 0', semantic: 'Given' },
+    { raw: '      When depositar(5)', type: 'step', kw: 'When', desc: 'depositar(5)', semantic: 'When',
+      action: { name: 'depositar', arg: 5 } },
+    { raw: '      * transferir(3)', type: 'step', kw: '*', desc: 'transferir(3)', semantic: 'When',
+      action: { name: 'transferir', arg: 3 } },
+    { raw: '      Then saldo == 12', type: 'step', kw: 'Then', desc: 'saldo == 12', semantic: 'Then',
+      expect: { field: 'saldo', value: 12 } },
+  ],
+
+  /* Execution plan: each step has a callback that mutates a fake ctx.
+     Line indexes are 0-based positions in walkData.source. */
+  plan: [
+    /* Header lines, no source highlight yet */
+    { kind:'term', text: 'Feature: Transferência bancária com Gherkin completo', cls: 'term-feature' },
+    { kind:'term', text: '  Rule: asterisco herda a keyword', cls: 'term-rule' },
+
+    /* Scenario header (line 5 in source data-line = index 5) */
+    { kind:'activate', line:5 },
+    { kind:'term', text: '    \x1b[33mScenario:\x1b[0m estrela funciona como Given/When/Then', cls: 'term-scenario' },
+    /* Reset ctx for fresh scenario — re-runs Background next */
+    { kind:'field-reset', ctx:{ saldo: 0, limite: 0, audit: 0 } },
+
+    /* Feature Background — runs before every scenario */
+    { kind:'activate', line:1 },
+    { kind:'term', text: '      \x1b[32mGiven\x1b[0m saldo = 100', cls: 'term-step' },
+    { kind:'field-set', field:'saldo', value: 100 },
+
+    { kind:'activate', line:2 },
+    { kind:'term', text: '      \x1b[32mAnd\x1b[0m limite = 50', cls: 'term-step' },
+    { kind:'field-set', field:'limite', value: 50 },
+
+    /* Scenario body — runs after Background, may override fields */
+    { kind:'activate', line:6 },
+    { kind:'term', text: '      \x1b[32mGiven\x1b[0m saldo = 10', cls: 'term-step' },
+    { kind:'field-set', field:'saldo', value: 10 },
+
+    /* * limite = 0 (inherits Given semantically) */
+    { kind:'activate', line:7 },
+    { kind:'term', text: '      \x1b[32m*\x1b[0m limite = 0', cls: 'term-step' },
+    { kind:'field-set', field:'limite', value: 0 },
+
+    { kind:'activate', line:8 },
+    { kind:'term', text: '      \x1b[32mWhen\x1b[0m depositar(5)', cls: 'term-step' },
+    { kind:'action', name:'depositar', arg:5 },
+
+    { kind:'activate', line:9 },
+    { kind:'term', text: '      \x1b[32m*\x1b[0m transferir(3)', cls: 'term-step' },
+    { kind:'action', name:'transferir', arg:3 },
+
+    { kind:'activate', line:10 },
+    { kind:'term', text: '      \x1b[32mThen\x1b[0m saldo == 12', cls: 'term-step' },
+    { kind:'expect', field:'saldo', value: 12, line:10 },
+
+    { kind:'term', text: '✓ scenario OK', cls: 'term-pass' },
+  ],
+
+  ctx: { saldo: 0, limite: 0, audit: 0 },
+};
+
+function renderWalkSource(){
+  const box = document.getElementById('walkSource');
+  box.innerHTML = walkData.source.map((l, i) =>
+    `<div class="line" data-line="${i}">` +
+      `<span class="line-num">${l.raw === '' ? '' : String(i+2).padStart(2,' ')}</span>` +
+      `<span class="line-text">${escapeHTML(l.raw || '&nbsp;')}</span>` +
+    `</div>`
+  ).join('');
+}
+function escapeHTML(s){ return s.replace(/[&<>]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
+
+function renderFields(){
+  const box = document.getElementById('fieldsBox');
+  const fields = Object.entries(walkData.ctx);
+  box.innerHTML = fields.map(([k,v]) =>
+    `<div class="field-row" data-field="${k}">
+      <span class="fname">${k}</span>
+      <span class="fvalue">${v}</span>
+    </div>`
+  ).join('');
+}
+
+let walkStep = 0;
+let walkTimer = null;
+
+function walkReset(){
+  walkStep = 0;
+  walkData.ctx = { saldo: 0, limite: 0, audit: 0 };
+  document.getElementById('walkTerm').innerHTML = '';
+  document.getElementById('errBox').classList.remove('visible');
+  document.getElementById('errBox').textContent = '';
+  document.querySelectorAll('#walkSource .line').forEach(l => l.classList.remove('active','done'));
+  renderFields();
+  document.getElementById('stepCur').textContent = '0';
+  document.getElementById('stepTotal').textContent = walkData.plan.length;
+}
+
+function walkTick(){
+  if (walkStep >= walkData.plan.length) {
+    if (walkTimer){ clearInterval(walkTimer); walkTimer = null; }
+    document.getElementById('btnPlay').textContent = '▶ Play';
+    return;
+  }
+  const op = walkData.plan[walkStep];
+
+  switch(op.kind){
+    case 'init':
+      walkData.ctx = { ...op.ctx };
+      renderFields();
+      break;
+    case 'field-reset':
+      walkData.ctx = { ...op.ctx };
+      renderFields();
+      break;
+    case 'field-set': {
+      walkData.ctx[op.field] = op.value;
+      renderFields();
+      const row = document.querySelector(`.field-row[data-field="${op.field}"]`);
+      if (row){
+        row.classList.add('changed');
+        setTimeout(() => row.classList.remove('changed'), 900);
+      }
+      break;
+    }
+    case 'action': {
+      const m = op.name;
+      const v = op.arg;
+      if (m === 'depositar'){
+        if (v <= 0){
+          walkData.ctx.error = 'ValorInvalido';
+          const e = document.getElementById('errBox');
+          e.textContent = '⚠ ValorInvalido (would be raised)';
+          e.classList.add('visible');
+        } else {
+          walkData.ctx.saldo += v;
+          walkData.ctx.audit += 1;
+          renderFields();
+        }
+      }
+      if (m === 'transferir'){
+        if (v <= 0){
+          walkData.ctx.error = 'ValorInvalido';
+          const e = document.getElementById('errBox');
+          e.textContent = '⚠ ValorInvalido (would be raised)';
+          e.classList.add('visible');
+          return;
+        }
+        if (v > walkData.ctx.saldo + walkData.ctx.limite){
+          walkData.ctx.error = 'SaldoInsuficiente';
+          const e = document.getElementById('errBox');
+          e.textContent = '⚠ SaldoInsuficiente (would be raised)';
+          e.classList.add('visible');
+          return;
+        }
+        walkData.ctx.saldo -= v;
+        walkData.ctx.audit += 1;
+        renderFields();
+      }
+      break;
+    }
+    case 'expect': {
+      const real = walkData.ctx[op.field];
+      const term = document.getElementById('walkTerm');
+      const div = document.createElement('div');
+      div.className = 'term-line';
+      if (real === op.value){
+        div.innerHTML = `<span class="term-pass">✓ expect ${op.field} == ${op.value} (got ${real})</span>`;
+      } else {
+        div.innerHTML = `<span class="term-fail">✗ expect ${op.field} == ${op.value} (got ${real})</span>`;
+      }
+      term.appendChild(div);
+      term.scrollTop = term.scrollHeight;
+
+      /* Mark this line done in the source view */
+      const lineEl = document.querySelector(`#walkSource .line[data-line="${op.line|0}"]`);
+      if (lineEl) lineEl.classList.add('done');
+      break;
+    }
+    case 'activate': {
+      const all = document.querySelectorAll('#walkSource .line');
+      all.forEach(l => l.classList.remove('active'));
+      const lineEl = document.querySelector(`#walkSource .line[data-line="${op.line}"]`);
+      if (lineEl){
+        lineEl.classList.add('active');
+        lineEl.scrollIntoView({ block: 'nearest', behavior:'smooth' });
+      }
+      break;
+    }
+    case 'term': {
+      const term = document.getElementById('walkTerm');
+      const div = document.createElement('div');
+      div.className = `term-line ${op.cls}`;
+      div.textContent = stripANSI(op.text);
+      term.appendChild(div);
+      term.scrollTop = term.scrollHeight;
+      break;
+    }
+  }
+
+  walkStep += 1;
+  document.getElementById('stepCur').textContent = walkStep;
+}
+
+function stripANSI(s){
+  /* Tidy the ANSI sequences for the on-page terminal; the colors are
+     reproduced via CSS classes per line instead. */
+  return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function walkPlay(){
+  if (walkTimer){ clearInterval(walkTimer); walkTimer = null; document.getElementById('btnPlay').textContent='▶ Play'; return; }
+  document.getElementById('btnPlay').textContent='⏸ Pause';
+  walkTimer = setInterval(walkTick, 700);
+}
+
+document.getElementById('btnPlay').addEventListener('click', walkPlay);
+document.getElementById('btnNext').addEventListener('click', () => {
+  if (walkTimer){ clearInterval(walkTimer); walkTimer = null; document.getElementById('btnPlay').textContent='▶ Play'; }
+  walkTick();
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (walkTimer){ clearInterval(walkTimer); walkTimer = null; document.getElementById('btnPlay').textContent='▶ Play'; }
+  walkReset();
+});
+
+/* Initialise scene 4 */
+renderWalkSource();
+renderFields();
+walkReset();
+
+/* =========================================================================
+   Scene 5 — presets and simulator
+   This is a real reproduction of the parser behaviour for the supported
+   formats so users see exactly what the binary would do.
+   ========================================================================= */
+
+const presets = {
+  ok: `Feature: Teste rápido
+
+  Background:
+    Given saldo = 100
+    And limite = 0
+
+  Rule: depósito
+    Example: somar 10 fica 110
+      When depositar(10)
+      Then saldo == 110`,
+
+  outline: `Feature: Transferência parametrizada
+
+  Rule: outlines
+    Scenario Outline: saque de <valor>
+      Given saldo = <saldo>
+      When transferir(<valor>)
+      Then saldo == <saldo_final>
+
+      Examples:
+        | saldo | valor | saldo_final |
+        | 100   | 30    | 70          |
+        | 80    | 10    | 70          |`,
+
+  alias: `Feature: aliases
+
+  Rule: Example e Scenarios
+    Example: depósito de <v>
+      Given saldo = 10
+      When depositar(<v>)
+      Then saldo == <final>
+
+      Scenarios:
+        | v | final |
+        | 5 | 15    |
+        | 1 | 11    |`,
+
+  err: `Feature: erro nativo
+
+  Rule: saldo insuficiente
+    Scenario: tenta sacar mais do que tem
+      Given saldo = 20 and limite = 0
+      When transferir(50)
+      Then error SaldoInsuficiente`,
+
+  doc: `Feature: steps documentais
+
+  Rule: steps livres são aceitos como Doc
+    Scenario: tudo é só descrição
+      When zzz
+      Then qqq
+      And livre
+      But ainda é só documentação
+      * bullet também`,
+
+  asterisk: `Feature: asterisco herda
+
+  Rule: *
+    Scenario: estrela vira cada keyword
+      Given saldo = 10
+      * limite = 0
+      When depositar(5)
+      * transferir(3)
+      Then saldo == 12
+      * limite == 0`,
+};
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = presets[btn.dataset.preset];
+    document.getElementById('tryitSource').value = t;
+    runTryit();
+  });
+});
+
+document.getElementById('tryitSource').addEventListener('input', runTryit);
+
+function runTryit(){
+  const src = document.getElementById('tryitSource').value;
+  const out = document.getElementById('tryitTerm');
+  out.innerHTML = '';
+
+  const scenarios = simulateFeature(src);
+  if (!scenarios.length){
+    out.innerHTML = '<div class="term-line term-doc">(nenhum Scenario/Example encontrado)</div>';
+    return;
+  }
+
+  scenarios.forEach((sc, i) => {
+    append(out, 'term-feature', `Feature: ${stripANSI2(sc.feature)}`);
+    if (sc.rule) append(out, 'term-rule', `  Rule: ${sc.rule}`);
+    sc.executions.forEach((exec, j) => {
+      const label = exec.fromOutline ? `Scenario Outline [${exec.rowName}]` : (exec.name);
+      append(out, 'term-scenario', `    ${label}`);
+      const freshCtx = exec.steps;
+      freshCtx.forEach(s => {
+        const display = `[${s.shown_keyword}] ${s.desc}`;
+        append(out, 'term-step', `      ${display}`);
+      });
+      /* simulate state */
+      const ctx = { saldo: 0, limite: 0, audit: 0 };
+      let failed = false;
+      const trace = [];
+      exec.steps.forEach(s => {
+        if (s.action === 'Doc'){ return; }
+        if (s.action === 'SetFields'){
+          ctx[s.k1] = s.v1;
+          if (s.k2) ctx[s.k2] = s.v2;
+        }
+        if (s.action === 'CallAction'){
+          if (s.k1 === 'depositar'){
+            if (s.v1 <= 0){ ctx._err = 'ValorInvalido'; return; }
+            ctx.saldo += s.v1; ctx.audit += 1;
+          } else if (s.k1 === 'transferir'){
+            if (s.v1 <= 0){ ctx._err = 'ValorInvalido'; return; }
+            if (s.v1 > ctx.saldo + ctx.limite){ ctx._err = 'SaldoInsuficiente'; return; }
+            ctx.saldo -= s.v1; ctx.audit += 1;
+          }
+        }
+        if (s.action === 'ExpectField'){
+          const real = ctx[s.k1];
+          const ok = real === s.v1;
+          trace.push({ ok, msg: `expect ${s.k1} == ${s.v1} → got ${real}` });
+          if (!ok) failed = true;
+        }
+        if (s.action === 'ExpectError'){
+          const want = s.expected_error_name;
+          const got = ctx._err || '';
+          const ok = got === want;
+          trace.push({ ok, msg: `expect error ${want} → got ${got || '∅'}` });
+          if (!ok) failed = true;
+          ctx._err = null;
+        }
+      });
+
+      trace.forEach(t => {
+        if (t.ok) append(out, 'term-pass', `        ✓ ${t.msg}`);
+        else    append(out, 'term-fail', `        ✗ ${t.msg}`);
+      });
+
+      if (failed){
+        append(out, 'term-fail', `  ✗ scenario FAILED`);
+      } else {
+        append(out, 'term-pass', `  ✓ scenario OK`);
+      }
+    });
+  });
+}
+function append(parent, cls, text){
+  const d = document.createElement('div');
+  d.className = `term-line ${cls}`;
+  d.textContent = text;
+  parent.appendChild(d);
+  parent.scrollTop = parent.scrollHeight;
+}
+function stripANSI2(s){ return s; }
+
+/* ----- minimal Gherkin mini-parser that mirrors parseFeature logic ----- */
+function simulateFeature(text){
+  /* state */
+  let featureName = null;
+  const result = [];
+  const lines = text.split(/\r?\n/);
+  let mode = 'None'; /* None | FeatureBackground | RuleBackground | Scenario | ScenarioOutline | Examples */
+  let lastSemantic = null;
+  let featureBg = [];
+  let ruleBg = [];
+  let currentRule = '';
+  let outlineTitle = '';
+  let outlineSteps = [];
+  let exampleHeaders = [];
+  let outlineHasRows = false;
+
+  function startsWith(line, kw){
+    if (!line.startsWith(kw)) return false;
+    if (line.length === kw.length) return true;
+    const c = line[kw.length];
+    return c === ':' || c === ' ' || c === '\t';
+  }
+  function trim(s){ return s.replace(/^[ \t\r]+|[ \t\r]+$/g, ''); }
+  function restAfter(line, kw){
+    let r = trim(line.slice(kw.length));
+    if (r.startsWith(':')) r = trim(r.slice(1));
+    return r;
+  }
+  function splitFields(body){
+    body = trim(body);
+    if (!body) return null;
+    const idx = body.indexOf(' and ');
+    if (idx > -1){
+      return [parseOnePair(trim(body.slice(0, idx))), parseOnePair(trim(body.slice(idx+5)))];
+    }
+    return [parseOnePair(body), null];
+  }
+  function parseOnePair(p){
+    p = trim(p); if (!p) return null;
+    const eq = p.indexOf('=');
+    let key, value;
+    if (eq > -1){ key = trim(p.slice(0,eq)); value = trim(p.slice(eq+1)); }
+    else {
+      const sp = p.indexOf(' '); if (sp < 0) return null;
+      key = trim(p.slice(0,sp)); value = trim(p.slice(sp+1));
+    }
+    if (!key || !value) return null;
+    const n = parseInt(value, 10); if (isNaN(n)) return null;
+    return { k: key, v: n };
+  }
+  function parseStep(kw, body){
+    body = trim(body);
+    if (!body) return { shown_keyword: kw, desc:body, action:'Doc' };
+    if (kw === 'Given' || lastSemantic === 'Given'){
+      const f = splitFields(body); if (f && f[0]){
+        const step = { shown_keyword: kw, desc: body, action:'SetFields', k1:f[0].k, v1:f[0].v };
+        if (f[1]){ step.k2 = f[1].k; step.v2 = f[1].v; }
+        return step;
+      }
+      return { shown_keyword: kw, desc: body, action:'Doc' };
+    }
+    if (kw === 'When' || lastSemantic === 'When'){
+      /* CallAction: name(arg) or name arg */
+      const open = body.indexOf('(');
+      if (open > -1){
+        const close = body.lastIndexOf(')');
+        const name = trim(body.slice(0,open));
+        const arg = trim(body.slice(open+1, close));
+        if (name && arg && !isNaN(parseInt(arg,10))){
+          return { shown_keyword: kw, desc: body, action:'CallAction', k1:name, v1:parseInt(arg,10) };
+        }
+      } else {
+        const sp = body.indexOf(' ');
+        if (sp > -1){
+          const name = trim(body.slice(0, sp));
+          const arg = trim(body.slice(sp+1));
+          if (name && arg && !isNaN(parseInt(arg,10))){
+            return { shown_keyword: kw, desc: body, action:'CallAction', k1:name, v1:parseInt(arg,10) };
+          }
+        }
+      }
+      return { shown_keyword: kw, desc: body, action:'Doc' };
+    }
+    if (kw === 'Then' || lastSemantic === 'Then'){
+      if (body.startsWith('error ')){
+        return { shown_keyword: kw, desc: body, action:'ExpectError', expected_error_name: trim(body.slice(6)) };
+      }
+      if (body.startsWith('expect error ')){
+        return { shown_keyword: kw, desc: body, action:'ExpectError', expected_error_name: trim(body.slice(13)) };
+      }
+      const eq = body.indexOf('==');
+      if (eq > -1){
+        const k = trim(body.slice(0,eq));
+        const v = trim(body.slice(eq+2));
+        const n = parseInt(v,10); if (!isNaN(n)){
+          return { shown_keyword: kw, desc: body, action:'ExpectField', k1:k, v1:n };
+        }
+      }
+      const exp = body.indexOf(' expect ');
+      if (exp > -1){
+        const k = trim(body.slice(0, exp));
+        const v = trim(body.slice(exp+8));
+        const n = parseInt(v,10); if (!isNaN(n)){
+          return { shown_keyword: kw, desc: body, action:'ExpectField', k1:k, v1:n };
+        }
+      }
+      return { shown_keyword: kw, desc: body, action:'Doc' };
+    }
+    return { shown_keyword: kw, desc: body, action:'Doc' };
+  }
+  function pushScenario(name, steps){
+    const obj = result.find(r => r.feature === featureName && r.rule === currentRule);
+    if (!obj){
+      result.push({ feature: featureName, rule: currentRule, executions: [{ name, steps }] });
+    } else {
+      obj.executions.push({ name, steps });
+    }
+  }
+
+  /* main loop */
+  for (const raw of lines){
+    const line = trim(raw);
+    if (!line || line.startsWith('#')) continue;
+
+    if (startsWith(line, 'Feature')){
+      if (featureName !== null) break;
+      featureName = restAfter(line, 'Feature'); continue;
+    }
+    if (featureName === null) continue;
+
+    if (startsWith(line, 'Rule')){
+      currentRule = restAfter(line, 'Rule'); ruleBg = []; mode='None'; lastSemantic = null; continue;
+    }
+    if (startsWith(line, 'Background')){
+      mode = currentRule ? 'RuleBackground' : 'FeatureBackground';
+      lastSemantic = null; continue;
+    }
+    if (startsWith(line, 'Scenario Outline') || startsWith(line, 'Scenario Template')){
+      outlineTitle = restAfter(line, startsWith(line,'Scenario Outline') ? 'Scenario Outline' : 'Scenario Template');
+      outlineSteps = []; outlineHasRows = false; exampleHeaders = [];
+      mode = 'ScenarioOutline'; lastSemantic = null; continue;
+    }
+    if (startsWith(line, 'Examples') || startsWith(line, 'Scenarios')){
+      mode = 'Examples'; lastSemantic = null; continue;
+    }
+    if (startsWith(line, 'Scenario') || startsWith(line, 'Example')){
+      const kw = startsWith(line,'Scenario') ? 'Scenario' : 'Example';
+      const title = restAfter(line, kw);
+      const steps = [
+        ...featureBg,
+        ...ruleBg,
+      ];
+      pushScenario(title, steps.map(s => ({ ...s })));
+      mode = 'Scenario'; lastSemantic = null; continue;
+    }
+
+    if (mode === 'Examples' && line.startsWith('|')){
+      const cells = line.split('|').slice(1);
+      const trimmed = cells.map(c => trim(c.replace(/\|$/,'')));
+      /* ensure row integrity */
+      const useable = trimmed.slice(0, Math.max(trimmed.length - (line.endsWith('|') ? 1 : 0), trimmed.length));
+      if (!exampleHeaders.length){
+        exampleHeaders = useable;
+      } else {
+        const substituted = outlineSteps.map(s => {
+          const txt = replacePlaceholders(s.desc, exampleHeaders, useable);
+          return parseStep(s.shown_keyword, txt);
+        });
+        const all = [...featureBg, ...ruleBg, ...substituted];
+        pushScenario(outlineTitle.replace(/<[^>]+>/g, useable.join(',')), all);
+        outlineHasRows = true;
+      }
+      continue;
+    }
+
+    /* steps */
+    let stepKw = null;
+    if (startsWith(line,'Given')) stepKw='Given';
+    else if (startsWith(line,'When')) stepKw='When';
+    else if (startsWith(line,'Then')) stepKw='Then';
+    else if (startsWith(line,'And'))  stepKw='And';
+    else if (startsWith(line,'But'))  stepKw='But';
+    else if (startsWith(line,'*'))    stepKw='*';
+
+    if (stepKw){
+      const body = restAfter(line, stepKw);
+      let effective = stepKw;
+      if (stepKw === 'And' || stepKw === 'But' || stepKw === '*'){
+        if (!lastSemantic) continue;
+        effective = lastSemantic;
+      } else {
+        lastSemantic = stepKw;
+      }
+      const step = parseStep(effective, body);
+      if (mode === 'FeatureBackground') featureBg.push({ ...step, shown_keyword: stepKw });
+      else if (mode === 'RuleBackground') ruleBg.push({ ...step, shown_keyword: stepKw });
+      else if (mode === 'Scenario'){
+        /* add to latest execution of currentRule */
+        const obj = result.find(r => r.feature === featureName && r.rule === currentRule);
+        if (obj && obj.executions.length){
+          obj.executions[obj.executions.length-1].steps.push({ ...step, shown_keyword: stepKw });
+        }
+      }
+      else if (mode === 'ScenarioOutline'){
+        outlineSteps.push({ ...step, shown_keyword: stepKw });
+      }
+      continue;
+    }
+  }
+  return result;
+}
+
+function replacePlaceholders(text, headers, values){
+  return text.replace(/<([^>]+)>/g, (_, key) => {
+    const i = headers.indexOf(key.trim());
+    return i >= 0 ? values[i] : `<${key}>`;
+  });
+}
+
+runTryit();
+</script>
+
+</body>
+</html>

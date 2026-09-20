@@ -22,7 +22,7 @@ A especificação oficial do Gherkin define como os documentos devem ser estrutu
 | `Scenario Outline` / `Template` | ✅ | ✅ | ✅ | Geração em comptime das variações baseadas nas tabelas de Examples. |
 | `Examples` / `Scenarios` | ✅ | ✅ | ✅ | Passagem de parâmetros `<var>` avaliada dinamicamente e injetada com tipagem. |
 
-**Veredito Estrutural:** O seu parser suporta **100% da estrutura fundamental** do Gherkin v6+, cobrindo até as adições mais recentes como `Rule` e o alias `Example/Template`.
+**Veredito Estrutural:** O parser suporta **100% da estrutura fundamental** do Gherkin v6+, cobrindo até as adições mais recentes como `Rule` e o alias `Example/Template`.
 
 ---
 
@@ -35,11 +35,11 @@ Os passos são o núcleo da execução do BDD.
 | `Given`, `When`, `Then` | ✅ | ✅ | ✅ | Mapeado diretamente para binding de struct. |
 | `And`, `But` | ✅ | ✅ | ✅ | Herança do contexto semântico anterior funcionando perfeitamente. |
 | `*` (Asterisk) | ✅ | ✅ | ✅ | Herda a execução livre, demonstrando parser maduro. |
-| Doc Strings (`"""`) | ❌ | ✅ | ✅ | Textos longos formatados não são suportados nativamente pelo seu parser atual. |
-| Data Tables (Nos Steps) | ❌ | ✅ | ✅ | Tabelas (além das de `Examples`) passadas como parâmetro em steps específicos não estão implementadas. |
+| Doc Strings (`"""`) | ✅ | ✅ | ✅ | Anexadas ao step anterior e disponibilizadas em `StepPayload.doc_string`. |
+| Data Tables (Nos Steps) | ✅ | ✅ | ✅ | Linhas com pipes são anexadas ao step e disponibilizadas em `StepPayload.table`. |
 | Comentários (`#`) | ✅ | ✅ | ✅ | Linhas de comentário são corretamente ignoradas. |
 
-**Veredito de Steps:** Excelente para linhas simples, parametrizadas e binding por *pattern-matching* (ex: alocação e expects no Zig). Falta apenas suporte a *Data Tables inline* e *Doc Strings* para cobrir a especificação completa de payloads complexos.
+**Veredito de Steps:** Excelente para linhas simples, parametrizadas e binding por *pattern-matching* (ex: alocação e expects no Zig). Doc Strings e Data Tables inline agora podem ser consumidos por actions com payload tipado.
 
 ---
 
@@ -50,7 +50,7 @@ Aqui a comparação de como as abstrações conversam com o código real.
 | Feature | Zig Comptime BDD | Cucumber | Godog (Go) |
 | :--- | :---: | :---: | :---: |
 | **Tempo de Avaliação do BDD** | **Comptime (Compile-time)** | Runtime | Runtime |
-| **Binding dos Steps** | Reflection Simples (AST parser) | Regex / Cucumber Expressions | Regex / Cucumber Expressions |
+| **Binding dos Steps** | Parsing textual + reflexão comptime | Regex / Cucumber Expressions | Regex / Cucumber Expressions |
 | **Uso de Memória** | **Nulo/Zero Overhead** | Alto (Alocação Dinâmica) | Moderado |
 | **Tags / Filtros (`@tag`)** | ❌ | ✅ | ✅ |
 | **Hooks (`Before`, `After`)** | Abstrato (via reinicialização da `Struct` para cada cenário) | Dinâmico (Global/Tag) | Dinâmico (Contexto) |
@@ -64,18 +64,29 @@ Aqui a comparação de como as abstrações conversam com o código real.
 
 ## 4. O que falta para se tornar o padrão de mercado no Zig?
 
-Caso você queira escalar este projeto para um repositório open-source definitivo para a comunidade Zig, você precisaria adicionar:
+O suporte atual cobre Doc Strings e Data Tables anexados diretamente a steps. Para ampliar a
+compatibilidade com Gherkin e chegar mais perto dos frameworks maduros, ainda seria possível adicionar:
 
-1. **Suporte a Data Tables Inline nos Steps**:
-   ```gherkin
-   Given os seguintes usuários existem:
-     | nome | saldo | limite |
-     | Joao | 100   | 50     |
-     | Ana  | 0     | 200    |
-   ```
-2. **Tags de Execução (`@tag`)**:
+1. **Tags de Execução (`@tag`)**:
    Implementar a capacidade de rodar apenas partes do arquivo em comptime filtrando por tags antes do `parseFeature`.
-3. **Strings Multilinhas (Doc Strings)** para validações de payloads grandes (muito útil em testes de APIs REST).
+2. **Hooks (`Before`, `After`)** explícitos para setup e teardown por feature, rule ou cenário.
+3. **Expansão de placeholders em Data Tables de Scenario Outline**, além da expansão já suportada no título e nos steps.
+
+### Contrato dos payloads
+
+O parser captura os blocos, mas a action só recebe o payload quando declara a assinatura com três
+argumentos:
+
+```zig
+pub fn registrar(self: *Conta, valor: i32, payload: StepPayload) !void
+```
+
+`payload.doc_string` contém o texto multilinear sem a indentação estrutural do Gherkin e
+`payload.table` contém as linhas, cada uma com suas células. Actions existentes com dois
+argumentos continuam recebendo apenas `self` e o argumento numérico.
+
+O cenário `Doc String e Data Table são enviados para a action`, em `testes.feature`, valida
+esses dois caminhos em conjunto.
 
 ### Conclusão
 

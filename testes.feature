@@ -87,3 +87,16 @@ Feature: Transferência bancária com Gherkin completo
       And outro texto livre
       But ainda é apenas documentação
       * bullet step Gherkin aceito
+
+  Rule: payloads de steps
+
+    Scenario: Doc String e Data Table são enviados para a action
+      When registrar(1)
+        """
+        {
+          "evento": "transferencia"
+        }
+        """
+        | nome | valor |
+        | Joao | 30    |
+      Then audit == 1
