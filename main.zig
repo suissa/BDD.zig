@@ -332,6 +332,15 @@ fn outlineScenarioPasses(
     var expanded_steps: []const RawStep = &.{};
 
     inline for (outline_steps) |step| {
+        var expanded_table: []const TableRow = &.{};
+        inline for (step.payload.table) |row| {
+            var expanded_cells: []const []const u8 = &.{};
+            inline for (row.cells) |cell| {
+                expanded_cells = expanded_cells ++ .{replacePlaceholders(cell, headers, values, line_no)};
+            }
+            expanded_table = expanded_table ++ .{TableRow{ .cells = expanded_cells }};
+        }
+
         expanded_steps = expanded_steps ++ .{RawStep{
             .semantic_keyword = step.semantic_keyword,
             .shown_keyword = step.shown_keyword,
@@ -339,7 +348,7 @@ fn outlineScenarioPasses(
             .line_no = step.line_no,
             .payload = .{
                 .doc_string = replacePlaceholders(step.payload.doc_string, headers, values, line_no),
-                .table = step.payload.table,
+                .table = expanded_table,
             },
         }};
     }
