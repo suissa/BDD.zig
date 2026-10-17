@@ -47,7 +47,7 @@ typed-unit validation, workload executor, and evidence collector still need to b
 implemented before these scenarios can run. Load tests must target an explicitly
 allowlisted environment with bounded rate, duration, payload, and concurrency.
 
-## Native Zig evidence tests\n\nRun the native Zig tests, including the API workload/evidence tests:\n\n```sh\nzig build test\n```\n\nThe tests exercise stress, load, spike, soak, capacity, volume, endurance, availability, resilience, recovery, and concurrency paths, plus safety-budget and error-threshold failures. They use a deterministic in-process transport so running the suite cannot accidentally load a production service.\n\n## Browser E2E: Playwright BDD + Lightpanda
+## Native Zig evidence tests\n\nRun the native Zig tests, including the API workload/evidence tests:\n\n```sh\nzig build test\n```\n\nThe tests exercise stress, load, spike, soak, capacity, volume, endurance, availability, resilience, recovery, and concurrency paths, safety-budget and error-threshold failures, typed `.edt` parsing, and bounded `Eventually` polling. They use deterministic fixtures so running the suite cannot accidentally load a production service.\n\n## Browser E2E: Playwright BDD + Lightpanda
 
 The native Zig runner remains available for tests against Zig contexts. For browser
 acceptance tests, the repository also includes a TypeScript adapter using
