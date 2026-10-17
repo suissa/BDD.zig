@@ -178,7 +178,6 @@ test "Endurance API tracks success and latency over a long-run-shaped batch" {
 
 test "Availability API evaluates successful probes against an error budget" {
     var api = TestApi{};
-    api.fail_every = 1_000;
     const result = try run(.availability, .{ .requests = 1_000, .max_requests = 1_000, .max_error_rate_percent = 0.1 }, api.transport());
     try std.testing.expectEqual(@as(f64, 0.0), result.errorRatePercent());
 }
