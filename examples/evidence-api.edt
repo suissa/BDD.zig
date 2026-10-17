@@ -1,0 +1,125 @@
+# Evidence Behavior — API testing specification
+# Declarative fixtures; executable only after the Evidence Behavior runner is implemented.
+
+Entity: API
+
+  Property: Runtime
+
+    Laws:
+      Invariants = [live_until_threshold_exceeded, bounded_resource_usage]
+      Constraints = [target_url_required, duration_positive, payload_size_positive]
+
+    Evidency Behavior: Stress API
+      Background:
+        configs
+
+      Given payload = X
+      And increase_data = 10Mb
+      And increase_time = 10s
+      And duration = 2m
+      I Expect isLive
+
+    Evidency Behavior: Load API
+      Background:
+        configs
+
+      Given payload = X
+      And virtual_users = 100
+      And increase_users = 10
+      And increase_time = 10s
+      And duration = 5m
+      I Expect isLive
+
+    Evidency Behavior: Spike API
+      Background:
+        configs
+
+      Given payload = X
+      And baseline_users = 10
+      And spike_users = 500
+      And increase_time = 1s
+      And hold_time = 30s
+      And duration = 2m
+      I Expect recoversWithin = 30s
+
+    Evidency Behavior: Soak API
+      Background:
+        configs
+
+      Given payload = X
+      And virtual_users = 50
+      And increase_data = 1Mb
+      And duration = 2h
+      I Expect isLive
+
+    Evidency Behavior: Capacity API
+      Background:
+        configs
+
+      Given payload = X
+      And start_users = 10
+      And increase_users = 10
+      And increase_time = 30s
+      And max_error_rate = 1%
+      And duration = 10m
+      I Expect capacityRecorded
+
+    Evidency Behavior: Volume API
+      Background:
+        configs
+
+      Given payload = X
+      And total_requests = 1000000
+      And request_rate = 100
+      And duration = 3h
+      I Expect isLive
+
+    Evidency Behavior: Endurance API
+      Background:
+        configs
+
+      Given payload = X
+      And virtual_users = 25
+      And request_rate = 20
+      And duration = 8h
+      I Expect resourceLeak = false
+
+    Evidency Behavior: Availability API
+      Background:
+        configs
+
+      Given payload = X
+      And request_rate = 20
+      And duration = 30m
+      And max_error_rate = 0.1%
+      I Expect availability >= 99.9%
+
+    Evidency Behavior: Resilience API
+      Background:
+        configs
+
+      Given payload = X
+      And request_rate = 50
+      And inject_fault = upstream_timeout
+      And fault_duration = 20s
+      And duration = 3m
+      I Expect recoversWithin = 30s
+
+    Evidency Behavior: Recovery API
+      Background:
+        configs
+
+      Given payload = X
+      And inject_fault = service_restart
+      And fault_duration = 10s
+      And duration = 2m
+      I Expect isLiveAfterRecovery
+
+    Evidency Behavior: Concurrency API
+      Background:
+        configs
+
+      Given payload = X
+      And concurrent_requests = 100
+      And duration = 2m
+      I Expect noRaceConditions
