@@ -1,0 +1,43 @@
+Evidency Behavior: Stress API
+  Given duration = 2m
+  I Expect isLive
+
+Evidency Behavior: Load API
+  Given virtual_users = 100
+  I Expect isLive
+
+Evidency Behavior: Spike API
+  Given increase_time = 1s
+  I Expect recoversWithin = 30s
+
+Evidency Behavior: Soak API
+  Given duration = 2h
+  I Expect isLive
+
+Evidency Behavior: Capacity API
+  Given max_error_rate = 1%
+  I Expect capacityRecorded
+
+Evidency Behavior: Volume API
+  Given total_requests = 1000000
+  I Expect isLive
+
+Evidency Behavior: Endurance API
+  Given duration = 8h
+  I Expect resourceLeak = false
+
+Evidency Behavior: Availability API
+  Given max_error_rate = 0.1%
+  I Expect availability >= 99.9%
+
+Evidency Behavior: Resilience API
+  Given fault_duration = 20s
+  I Expect recoversWithin = 30s
+
+Evidency Behavior: Recovery API
+  Given fault_duration = 10s
+  I Expect isLiveAfterRecovery
+
+Evidency Behavior: Concurrency API
+  Given concurrent_requests = 100
+  I Expect noRaceConditions
