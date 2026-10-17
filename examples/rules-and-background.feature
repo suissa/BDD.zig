@@ -7,7 +7,7 @@ Feature: Transferências
   Rule: Transferência normal
 
     Background:
-      And audit = 10
+      Given audit = 10
 
     Scenario: Transferir dentro do limite
       When transferir(20)
