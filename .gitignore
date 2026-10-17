@@ -1,3 +1,9 @@
 .zig-cache/
 zig-out/
 .serena/
+
+# Playwright BDD / Lightpanda
+node_modules/
+.features-gen/
+playwright-report/
+test-results/
