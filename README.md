@@ -31,7 +31,7 @@ The result is a small bridge between a human-readable specification and executab
  assertions / errors
 ```
 
-The implementation currently lives in a single Zig source file and provides both the parser and executor. The parser and semantic compilation are performed at `comptime`, while the resulting steps are executed against a concrete Zig context at runtime. The implementation explicitly models `Feature`, `Rule`, `Scenario`, and `Step`, as well as semantic step actions such as `SetFields`, `CallAction`, `ExpectField`, and `ExpectError`.
+The existing Gherkin parser/executor is in `main.zig`. The additive native evidence runner lives in `src/evidence.zig`: it executes bounded workloads through an injected transport and evaluates measured request counts, latency, errors, and recovery evidence. The current tests use a deterministic in-process API fixture; a network-backed transport and parsing/execution of `.edt` files are not implemented yet.
 
 ## Declarative evidence testing
 
@@ -47,7 +47,7 @@ typed-unit validation, workload executor, and evidence collector still need to b
 implemented before these scenarios can run. Load tests must target an explicitly
 allowlisted environment with bounded rate, duration, payload, and concurrency.
 
-## Browser E2E: Playwright BDD + Lightpanda
+## Native Zig evidence tests\n\nRun the native Zig tests, including the API workload/evidence tests:\n\n```sh\nzig build test\n```\n\nThe tests exercise stress, load, spike, soak, capacity, volume, endurance, availability, resilience, recovery, and concurrency paths, plus safety-budget and error-threshold failures. They use a deterministic in-process transport so running the suite cannot accidentally load a production service.\n\n## Browser E2E: Playwright BDD + Lightpanda
 
 The native Zig runner remains available for tests against Zig contexts. For browser
 acceptance tests, the repository also includes a TypeScript adapter using
