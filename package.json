@@ -9,11 +9,11 @@
     "bdd:check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@lightpanda/browser": "^2.0.0",
-    "@playwright/test": "^1.55.0",
+    "@lightpanda/browser": "^1.6.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.0.0",
-    "playwright-bdd": "^8.0.0",
-    "playwright-core": "^1.55.0",
+    "playwright-bdd": "^9.2.1",
+    "playwright-core": "^1.64.1",
     "typescript": "^5.9.0"
   }
 }
