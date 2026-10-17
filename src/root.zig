@@ -26,3 +26,8 @@ test {
 test {
     _ = @import("eventually.zig");
 }
+
+// Include the Evidency Behavior parser and its typed-value tests in the suite.
+test {
+    _ = @import("edt.zig");
+}
