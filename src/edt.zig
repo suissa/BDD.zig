@@ -157,11 +157,11 @@ test "parses all API evidence behaviors from the example file" {
 
 test "parses typed duration and percentage values" {
     const source =
-        \Evidency Behavior: typed values
-        \  Given duration = 2m
-        \  And increase_data = 10Mb
-        \  And max_error_rate = 0.1%
-        \  I Expect isLive
+        \\Evidency Behavior: typed values
+        \\  Given duration = 2m
+        \\  And increase_data = 10Mb
+        \\  And max_error_rate = 0.1%
+        \\  I Expect isLive
     ;
     const document = try parse(source);
     const behavior = document.find("typed values").?;
@@ -181,15 +181,15 @@ test "parses typed duration and percentage values" {
 
 test "rejects a behavior without an expectation" {
     try std.testing.expectError(error.MissingExpectation, parse(
-        \Evidency Behavior: incomplete
-        \  Given payload = X
+        \\Evidency Behavior: incomplete
+        \\  Given payload = X
     ));
 }
 
 test "rejects malformed parameters" {
     try std.testing.expectError(error.InvalidParameter, parse(
-        \Evidency Behavior: malformed
-        \  Given duration
-        \  I Expect isLive
+        \\Evidency Behavior: malformed
+        \\  Given duration
+        \\  I Expect isLive
     ));
 }
