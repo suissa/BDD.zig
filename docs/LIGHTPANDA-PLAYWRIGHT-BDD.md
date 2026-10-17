@@ -68,5 +68,7 @@ against Lightpanda's current compatibility before moving all E2E tests to it.
 - This adapter currently covers browser E2E scenarios only.
 - The first smoke scenario is an external connectivity check, not a substitute
   for application-specific acceptance tests.
-- CI should run `npm ci` after committing the generated lockfile; this initial
-  integration does not claim a verified lockfile or a passing CI run.
+- No lockfile is committed yet, so use `npm install` for this initial integration.
+  Commit the generated `package-lock.json` before switching CI to `npm ci`. The
+  integration is in the repository, but its tests have not yet been run in a
+  local Node/Lightpanda environment.
