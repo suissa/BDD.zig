@@ -148,7 +148,7 @@ pub fn parse(source: []const u8) ParseError!Document {
 }
 
 test "parses all API evidence behaviors from the example file" {
-    const source = @embedFile("../examples/evidence-api.edt");
+    const source = @embedFile("edt_test_fixture.edt");
     const document = try parse(source);
     try std.testing.expectEqual(@as(usize, 11), document.behavior_count);
     try std.testing.expect(document.find("Stress API") != null);
