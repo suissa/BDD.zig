@@ -1,0 +1,19 @@
+{
+  "name": "bdd-zig-lightpanda",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bdd:gen": "bddgen",
+    "bdd:test": "playwright test",
+    "bdd": "npm run bdd:gen && npm run bdd:test",
+    "bdd:check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@lightpanda/browser": "^2.0.0",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.0.0",
+    "playwright-bdd": "^8.0.0",
+    "playwright-core": "^1.55.0",
+    "typescript": "^5.9.0"
+  }
+}
