@@ -4,7 +4,7 @@
 
 An `Evidency Behavior` is a declarative test whose purpose is to produce evidence
 that a system meets an observable operational property. The initial examples focus
-on API performance and resilience. This is additive to the existing Gherkin runner. `src/evidence.zig` contains an executable Zig workload/evidence engine with tests for all 11 categories. The `.edt` syntax itself is not parsed or executed yet.
+on API performance and resilience. This is additive to the existing Gherkin runner. `src/edt.zig` parses the behavior/parameter/expectation subset and types common size, duration, and percentage values. `src/evidence.zig` contains an executable Zig workload/evidence engine with tests for all 11 categories. The parser is not yet connected to that engine, so `.edt` files do not run as end-to-end tests.
 
 ## Canonical shape
 
@@ -106,3 +106,8 @@ execution. A network-backed transport must be added before tests can target a re
 For live tests, require an explicit allowlisted base URL, a short timeout, a hard
 request/payload/concurrency budget, and an opt-in flag. Never default to production.
 The native Zig BDD runner and Lightpanda Playwright adapter remain separate.
+
+
+## Parser implementation status
+
+The current parser keeps source-backed slices, supports up to 16 behavior declarations and 24 parameters per behavior, and rejects malformed assignments or missing expectations. Recognized typed suffixes include `B`, `KB`, `MB`, `Mb`, `ms`, `s`, `m`, `h`, and `%`. Unknown values are retained as text rather than guessed as quantities. Parser tests use a fixture within the Zig package boundary; integration with the example file and execution pipeline remains future work.
