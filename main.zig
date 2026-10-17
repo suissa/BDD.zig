@@ -417,6 +417,9 @@ fn parseFeature(comptime text: []const u8) []const Step {
 
                 var completed = pending_step.?;
                 completed.payload = .{ .doc_string = doc_string, .table = table_rows };
+                // Preserve the semantic keyword when a step is finalized so
+                // following And/But/* steps inherit the actual preceding step.
+                last_semantic = completed.semantic_keyword;
                 switch (pending_mode) {
                     .FeatureBackground => feature_background = feature_background ++ .{completed},
                     .RuleBackground => rule_background = rule_background ++ .{completed},
