@@ -672,3 +672,27 @@ test "Executar especificações BDD Gherkin em comptime" {
     const compiled_steps = comptime parseFeature(feature_text);
     try runBDD(ContaBancaria, compiled_steps);
 }
+
+test "Gherkin fixture: basic.feature" {
+    const feature_text = @embedFile("examples/basic.feature");
+    const compiled_steps = comptime parseFeature(feature_text);
+    try runBDD(ContaBancaria, compiled_steps);
+}
+
+test "Gherkin fixture: rules-and-background.feature" {
+    const feature_text = @embedFile("examples/rules-and-background.feature");
+    const compiled_steps = comptime parseFeature(feature_text);
+    try runBDD(ContaBancaria, compiled_steps);
+}
+
+test "Gherkin fixture: scenario-outline.feature" {
+    const feature_text = @embedFile("examples/scenario-outline.feature");
+    const compiled_steps = comptime parseFeature(feature_text);
+    try runBDD(ContaBancaria, compiled_steps);
+}
+
+test "Gherkin fixture: gherkin-complete.feature" {
+    const feature_text = @embedFile("examples/gherkin-complete.feature");
+    const compiled_steps = comptime parseFeature(feature_text);
+    try runBDD(ContaBancaria, compiled_steps);
+}
