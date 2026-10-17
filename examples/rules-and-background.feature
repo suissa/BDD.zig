@@ -17,9 +17,8 @@ Feature: Transferências
 
   Rule: Depósito
 
-    Scenario: Example é alias de Scenario
-      Example: Depositar
-        Given saldo = 40 and limite = 0
-        When depositar 10
-        Then saldo expect 50
-        And audit == 1
+    Example: Depositar
+      Given saldo = 40 and limite = 0
+      When depositar 10
+      Then saldo expect 50
+      And audit == 1
