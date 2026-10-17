@@ -1,5 +1,5 @@
 import { lightpanda } from "@lightpanda/browser";
-import { chromium, type Page } from "playwright-core";
+import { chromium, type BrowserContext, type Page } from "playwright-core";
 import { test as base } from "@playwright/test";
 
 const host = process.env.LIGHTPANDA_HOST ?? "127.0.0.1";
@@ -14,7 +14,7 @@ export const test = base.extend<Fixtures>({
   lpdPage: async ({}, use) => {
     const process = await lightpanda.serve({ host, port });
     let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | undefined;
-    let context: Awaited<ReturnType<NonNullable<typeof browser>["newContext"]>> | undefined;
+    let context: BrowserContext | undefined;
 
     try {
       browser = await chromium.connectOverCDP(endpointURL);
