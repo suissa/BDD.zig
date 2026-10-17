@@ -33,6 +33,20 @@ The result is a small bridge between a human-readable specification and executab
 
 The implementation currently lives in a single Zig source file and provides both the parser and executor. The parser and semantic compilation are performed at `comptime`, while the resulting steps are executed against a concrete Zig context at runtime. The implementation explicitly models `Feature`, `Rule`, `Scenario`, and `Step`, as well as semantic step actions such as `SetFields`, `CallAction`, `ExpectField`, and `ExpectError`.
 
+## Declarative evidence testing
+
+The proposed `Evidency Behavior` DSL describes API stress, load, spike, soak,
+capacity, volume, endurance, availability, resilience, recovery, and concurrency
+checks using typed workload parameters and explicit expectations.
+
+- [Evidency Behavior specification](docs/EVIDENCY-BEHAVIOR.md)
+- [API evidence examples](examples/evidence-api.edt)
+
+These `.edt` examples are specifications, not executable tests yet. The parser,
+typed-unit validation, workload executor, and evidence collector still need to be
+implemented before these scenarios can run. Load tests must target an explicitly
+allowlisted environment with bounded rate, duration, payload, and concurrency.
+
 ## Browser E2E: Playwright BDD + Lightpanda
 
 The native Zig runner remains available for tests against Zig contexts. For browser
