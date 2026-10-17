@@ -33,6 +33,25 @@ The result is a small bridge between a human-readable specification and executab
 
 The implementation currently lives in a single Zig source file and provides both the parser and executor. The parser and semantic compilation are performed at `comptime`, while the resulting steps are executed against a concrete Zig context at runtime. The implementation explicitly models `Feature`, `Rule`, `Scenario`, and `Step`, as well as semantic step actions such as `SetFields`, `CallAction`, `ExpectField`, and `ExpectError`.
 
+## Browser E2E: Playwright BDD + Lightpanda
+
+The native Zig runner remains available for tests against Zig contexts. For browser
+acceptance tests, the repository also includes a TypeScript adapter using
+`playwright-bdd` and Lightpanda over CDP:
+
+```sh
+npm install
+npm run bdd:check
+npm run bdd
+```
+
+Write browser scenarios in `e2e/features/` and step definitions in
+`e2e/steps/`. The custom `lpdPage` fixture connects Playwright to Lightpanda;
+it does not launch Chromium. See
+[Lightpanda + Playwright BDD](docs/LIGHTPANDA-PLAYWRIGHT-BDD.md) for setup,
+limitations, and the smoke scenario. This adapter has been committed but has
+not yet been executed in a local Node/Lightpanda environment.
+
 ## What is BDD?
 
 Behavior-Driven Development (BDD) is a software development approach in which system behavior is described from the perspective of observable behavior rather than implementation details.
