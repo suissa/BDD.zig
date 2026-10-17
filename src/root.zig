@@ -16,3 +16,8 @@ pub fn add(a: i32, b: i32) i32 {
 test "basic add functionality" {
     try std.testing.expect(add(3, 7) == 10);
 }
+
+// Include the native Evidence Behavior runner in `zig build test`.
+test {
+    _ = @import("evidence.zig");
+}
