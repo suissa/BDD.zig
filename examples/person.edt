@@ -1,0 +1,16 @@
+# Proposed BDD.zig Entity-Driven Testing fixture.
+# This is a specification example, not executable until EDT support is implemented.
+
+Entity: Person
+
+  Property: CPF
+
+    Behavior: validate
+      Input cpf = 04864713901
+      Run validate(cpf)
+      Expect isTruth
+
+    Behavior: reject invalid CPF
+      Input cpf = 04864713900
+      Run validate(cpf)
+      Expect isFalsy
