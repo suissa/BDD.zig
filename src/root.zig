@@ -21,3 +21,8 @@ test "basic add functionality" {
 test {
     _ = @import("evidence.zig");
 }
+
+// Include bounded eventual assertions in `zig build test`.
+test {
+    _ = @import("eventually.zig");
+}
