@@ -4,8 +4,7 @@
 
 An `Evidency Behavior` is a declarative test whose purpose is to produce evidence
 that a system meets an observable operational property. The initial examples focus
-on API performance and resilience. This is an additive proposal; it does not change
-the existing Gherkin runner or claim that the current EDT parser executes this syntax.
+on API performance and resilience. This is additive to the existing Gherkin runner. `src/evidence.zig` contains an executable Zig workload/evidence engine with tests for all 11 categories. The `.edt` syntax itself is not parsed or executed yet.
 
 ## Canonical shape
 
@@ -83,10 +82,27 @@ EDT source
    -> emit evidence + diagnostics
 ```
 
-## Initial implementation boundary
+## Current Zig implementation
 
-The files in `examples/evidence-api.edt` are specifications and test fixtures for the
-proposed DSL, not executable tests yet. Implementing this feature requires parser/AST
-nodes for `Evidency Behavior`, `Background`, typed quantities, and `I Expect`, plus
-an executor adapter for the selected load-generation engine. The native Zig BDD runner
-and Lightpanda Playwright adapter remain separate until this DSL has a defined runtime.
+`src/evidence.zig` provides `Kind`, `Config`, `Request`, `Response`, `Transport`,
+`Evidence`, and `run`. The transport is injected, so the workload and assertions can
+be tested without sending traffic to an arbitrary endpoint. The current test suite
+uses a deterministic in-process API fixture and covers all 11 categories plus budget
+and error-threshold failures.
+
+Run it with:
+
+```sh
+zig build test
+```
+
+Important boundary: these are executable tests of the workload/evidence engine, not
+live endpoint tests. The current fixture does not open sockets; `.edt` files are not
+parsed; `duration`, ramp-up, request-rate scheduling, percentile histograms, process
+resource sampling, and race detection are not implemented. The concurrency scenario
+currently validates a bounded batch of independent requests, not true parallel
+execution. A network-backed transport must be added before tests can target a real API.
+
+For live tests, require an explicit allowlisted base URL, a short timeout, a hard
+request/payload/concurrency budget, and an opt-in flag. Never default to production.
+The native Zig BDD runner and Lightpanda Playwright adapter remain separate.
