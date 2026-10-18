@@ -31,3 +31,10 @@ test {
 test {
     _ = @import("edt.zig");
 }
+
+// Include primitive type-interaction rules and exhaustive operator classification tests.
+test {
+    _ = @import("type_interaction.zig");
+    _ = @import("operator_interaction.zig");
+    _ = @import("semantic_ast.zig");
+}
