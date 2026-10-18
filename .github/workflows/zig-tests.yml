@@ -16,3 +16,5 @@ jobs:
           version: 0.15.2
       - name: Run native Zig test suite
         run: zig build test
+      - name: Run JavaScript semantic reference tests
+        run: node --test tests/operator-reference.test.mjs
