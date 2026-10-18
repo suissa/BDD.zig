@@ -106,7 +106,9 @@ test "all seven TypeScript primitive kinds have canonical properties" {
     try std.testing.expectEqual(@as(usize, 7), canonical_ast.properties.len);
     inline for (primitives) |primitive| {
         var found = false;
-        for (canonical_ast.properties) |p| if (p.primitive == primitive) found = true;
+        for (canonical_ast.properties) |p| {
+            if (p.primitive == primitive) found = true;
+        }
         try std.testing.expect(found);
     }
 }
