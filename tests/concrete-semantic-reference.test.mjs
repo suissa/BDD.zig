@@ -23,6 +23,7 @@ const operations = {
 function valueFor(type, partition) {
   if (partition === "nan") return NaN;
   if (partition === "positive_infinity") return Infinity;
+  if (partition === "negative_infinity") return -Infinity;
   if (partition === "negative_zero") return -0;
   if (partition === "symbol_value") return Symbol("x");
   if (partition === "null_value" || type === "null") return null;
@@ -66,7 +67,11 @@ function decodeExpected(encoded) {
   return JSON.parse(encoded);
 }
 
-function assertModeledCategory(entry, actual) {
+function describeCase(entry) {
+  return `${entry.name} [${entry.left_type}:${entry.left_partition} ${entry.operator} ${entry.right_type}:${entry.right_partition}; modeled=${entry.modeled_result}/${entry.modeled_outcome}]`;
+}
+
+function assertModeledCategory(entry, actual, context) {
   const category = entry.modeled_result;
   if (category === "operand") {
     const left = valueFor(entry.left_type, entry.left_partition);
@@ -74,11 +79,11 @@ function assertModeledCategory(entry, actual) {
     const expectedOperand = entry.operator === "logical_and"
       ? (left ? right : left)
       : (left ? left : right);
-    assert.ok(Object.is(actual, expectedOperand), "classifier predicts operand selection");
+    assert.ok(Object.is(actual, expectedOperand), `${context}: classifier predicts operand selection; received ${String(actual)}, expected ${String(expectedOperand)}`);
     return;
   }
   if (category === "type_error") {
-    assert.fail("classifier predicted TypeError but runtime returned a value");
+    assert.fail(`${context}: classifier predicted TypeError but runtime returned ${String(actual)} (${typeof actual})`);
   }
   const expectedType = ({
     string: "string",
@@ -88,23 +93,24 @@ function assertModeledCategory(entry, actual) {
     boolean: "boolean",
   })[category];
   assert.equal(typeof actual, expectedType,
-    `classifier category ${category} disagrees with runtime type ${typeof actual}`);
+    `${context}: classifier category ${category} disagrees with runtime type ${typeof actual}`);
 }
 
-function assertSameValue(actual, expected) {
+function assertSameValue(actual, expected, context) {
   if (typeof expected === "number" && Number.isNaN(expected)) {
-    assert.ok(Number.isNaN(actual), "expected NaN");
+    assert.ok(Number.isNaN(actual), `${context}: expected NaN, received ${String(actual)}`);
     return;
   }
-  assert.ok(Object.is(actual, expected), `expected ${String(expected)}, received ${String(actual)}`);
+  assert.ok(Object.is(actual, expected), `${context}: expected ${String(expected)}, received ${String(actual)}`);
 }
 
 test("Zig-authored concrete semantic cases match ECMAScript runtime", async (t) => {
   const cases = JSON.parse(await readFile("tests/generated-semantic-cases.json", "utf8"));
-  assert.equal(cases.length, 29, "the exported manifest must include every canonical Zig case");
+  assert.equal(cases.length, 32, "the exported manifest must include every canonical Zig case");
 
   for (const scenario of cases) {
     await t.test(scenario.name, () => {
+      const context = describeCase(scenario);
       const operation = operations[scenario.operator];
       assert.equal(typeof operation, "function", `unknown operator: ${scenario.operator}`);
       const left = valueFor(scenario.left_type, scenario.left_partition);
@@ -112,19 +118,19 @@ test("Zig-authored concrete semantic cases match ECMAScript runtime", async (t) 
       if (scenario.expected_error) {
         if (scenario.expected_error === "TypeError") {
           assert.equal(scenario.modeled_outcome, "type_error",
-            "classifier and runtime must agree on TypeError");
+            `${context}: classifier and runtime must agree on TypeError`);
         } else {
           assert.notEqual(scenario.modeled_result, "type_error",
-            "value-dependent errors must not be confused with modeled type errors");
+            `${context}: value-dependent errors must not be confused with modeled type errors`);
         }
         const ErrorType = globalThis[scenario.expected_error];
         assert.equal(typeof ErrorType, "function", `unknown error type: ${scenario.expected_error}`);
-        assert.throws(() => operation(left, right), ErrorType);
+        assert.throws(() => operation(left, right), ErrorType, context);
         return;
       }
       const actual = operation(left, right);
-      assertModeledCategory(scenario, actual);
-      assertSameValue(actual, decodeExpected(scenario.expected));
+      assertModeledCategory(scenario, actual, context);
+      assertSameValue(actual, decodeExpected(scenario.expected), context);
     });
   }
 });
