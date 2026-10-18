@@ -37,6 +37,7 @@ function valueFor(type, partition) {
   }
   if (partition === "empty") return "";
   if (partition === "numeric_string") return "8";
+  if (partition === "numeric_string_two") return "2";
   if (partition === "invalid_numeric_string") return "not-a-number";
   if (partition === "truthy") {
     if (type === "string") return "left";
