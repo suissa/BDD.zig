@@ -37,4 +37,5 @@ test {
     _ = @import("type_interaction.zig");
     _ = @import("operator_interaction.zig");
     _ = @import("semantic_ast.zig");
+    _ = @import("semantic_cases.zig");
 }
