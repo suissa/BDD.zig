@@ -10,5 +10,5 @@ This is differential coverage over one representative per primitive kind, not ex
 
 Run locally:
 1. `zig build test`
-2. `zig run tools/export_operator_matrix.zig`
+2. `zig run src/export_operator_matrix.zig`
 3. `node --test tests/operator-reference.test.mjs`
