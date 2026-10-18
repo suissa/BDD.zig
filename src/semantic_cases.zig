@@ -2,7 +2,7 @@ const std = @import("std");
 const ast = @import("semantic_ast.zig");
 const operators = @import("operator_interaction.zig");
 
-pub const Partition = enum { ordinary, empty, numeric_string, numeric_string_two, numeric_two, invalid_numeric_string, zero, negative, nan, positive_infinity, negative_zero, bigint_zero, bigint_negative, truthy, falsy, symbol_value, null_value, undefined_value };
+pub const Partition = enum { ordinary, empty, numeric_string, numeric_string_two, numeric_two, invalid_numeric_string, zero, negative, nan, positive_infinity, negative_infinity, negative_zero, bigint_zero, bigint_negative, truthy, falsy, symbol_value, null_value, undefined_value };
 
 pub const ConcreteCase = struct {
     name: []const u8,
@@ -30,6 +30,9 @@ pub const cases = [_]ConcreteCase{
     .{ .name = "NaN relational comparison is false", .left_type = .number, .right_type = .number, .operator = .less_than, .left_partition = .nan, .right_partition = .ordinary, .expected = "false" },
     .{ .name = "NaN loose equality is false", .left_type = .number, .right_type = .number, .operator = .loose_equal, .left_partition = .nan, .right_partition = .nan, .expected = "false" },
     .{ .name = "positive infinity remains infinity", .left_type = .number, .right_type = .number, .operator = .multiply, .left_partition = .positive_infinity, .right_partition = .ordinary, .expected = "Infinity" },
+    .{ .name = "opposite infinities add to NaN", .left_type = .number, .right_type = .number, .operator = .add, .left_partition = .positive_infinity, .right_partition = .negative_infinity, .expected = "NaN" },
+    .{ .name = "NaN logical OR returns right operand", .left_type = .number, .right_type = .number, .operator = .logical_or, .left_partition = .nan, .right_partition = .ordinary, .expected = "1" },
+    .{ .name = "negative zero is strictly equal to positive zero", .left_type = .number, .right_type = .number, .operator = .strict_equal, .left_partition = .negative_zero, .right_partition = .zero, .expected = "true" },
     .{ .name = "BigInt division by zero throws RangeError", .left_type = .bigint, .right_type = .bigint, .operator = .divide, .left_partition = .ordinary, .right_partition = .bigint_zero, .expected = "", .expected_error = "RangeError" },
     .{ .name = "BigInt remainder by zero throws RangeError", .left_type = .bigint, .right_type = .bigint, .operator = .remainder, .left_partition = .ordinary, .right_partition = .bigint_zero, .expected = "", .expected_error = "RangeError" },
     .{ .name = "negative BigInt exponent throws RangeError", .left_type = .bigint, .right_type = .bigint, .operator = .exponent, .left_partition = .ordinary, .right_partition = .bigint_negative, .expected = "", .expected_error = "RangeError" },
@@ -50,7 +53,7 @@ pub const cases = [_]ConcreteCase{
 };
 
 test "concrete semantic cases are linked to classified operator rules" {
-    try std.testing.expectEqual(@as(usize, 29), cases.len);
+    try std.testing.expectEqual(@as(usize, 32), cases.len);
     for (cases) |case| {
         const rule = operators.classify(case.left_type, case.right_type, case.operator);
         try std.testing.expect(case.name.len > 0);
