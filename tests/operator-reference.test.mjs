@@ -63,10 +63,10 @@ function assertValueOutcome(entry, left, right, context) {
     return; // RangeError is value-dependent (e.g. BigInt division by zero).
   }
 
-  assertMatchesModel(entry, actual, context);
+  assertMatchesModel(entry, actual, context, left, right);
 }
 
-function assertMatchesModel(entry, actual, context = `${entry.left} ${entry.operator} ${entry.right}`) {
+function assertMatchesModel(entry, actual, context = `${entry.left} ${entry.operator} ${entry.right}`, leftValue = primitiveValues[entry.left], rightValue = primitiveValues[entry.right]) {
   switch (entry.result) {
     case "string": assert.equal(typeof actual, "string", context); break;
     case "boolean": assert.equal(typeof actual, "boolean", context); break;
@@ -74,9 +74,7 @@ function assertMatchesModel(entry, actual, context = `${entry.left} ${entry.oper
     case "number_or_nan":
     case "number": assert.equal(typeof actual, "number", context); break;
     case "operand": {
-      const left = primitiveValues[entry.left];
-      const right = primitiveValues[entry.right];
-      const expectedOperand = entry.operator === "logical_and" ? (left ? right : left) : (left ? left : right);
+      const expectedOperand = entry.operator === "logical_and" ? (leftValue ? rightValue : leftValue) : (leftValue ? leftValue : rightValue);
       assert.ok(Object.is(actual, expectedOperand), `${context}: logical operator must return selected operand`);
       break;
     }
