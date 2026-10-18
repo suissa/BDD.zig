@@ -76,7 +76,7 @@ function assertSameValue(actual, expected) {
 
 test("Zig-authored concrete semantic cases match ECMAScript runtime", async (t) => {
   const cases = JSON.parse(await readFile("tests/generated-semantic-cases.json", "utf8"));
-  assert.equal(cases.length, 25, "the exported manifest must include every canonical Zig case");
+  assert.equal(cases.length, 29, "the exported manifest must include every canonical Zig case");
 
   for (const scenario of cases) {
     await t.test(scenario.name, () => {
