@@ -66,6 +66,31 @@ function decodeExpected(encoded) {
   return JSON.parse(encoded);
 }
 
+function assertModeledCategory(entry, actual) {
+  const category = entry.modeled_result;
+  if (category === "operand") {
+    const left = valueFor(entry.left_type, entry.left_partition);
+    const right = valueFor(entry.right_type, entry.right_partition);
+    const expectedOperand = entry.operator === "logical_and"
+      ? (left ? right : left)
+      : (left ? left : right);
+    assert.ok(Object.is(actual, expectedOperand), "classifier predicts operand selection");
+    return;
+  }
+  if (category === "type_error") {
+    assert.fail("classifier predicted TypeError but runtime returned a value");
+  }
+  const expectedType = ({
+    string: "string",
+    number: "number",
+    number_or_nan: "number",
+    bigint: "bigint",
+    boolean: "boolean",
+  })[category];
+  assert.equal(typeof actual, expectedType,
+    `classifier category ${category} disagrees with runtime type ${typeof actual}`);
+}
+
 function assertSameValue(actual, expected) {
   if (typeof expected === "number" && Number.isNaN(expected)) {
     assert.ok(Number.isNaN(actual), "expected NaN");
@@ -85,12 +110,21 @@ test("Zig-authored concrete semantic cases match ECMAScript runtime", async (t) 
       const left = valueFor(scenario.left_type, scenario.left_partition);
       const right = valueFor(scenario.right_type, scenario.right_partition);
       if (scenario.expected_error) {
+        if (scenario.expected_error === "TypeError") {
+          assert.equal(scenario.modeled_outcome, "type_error",
+            "classifier and runtime must agree on TypeError");
+        } else {
+          assert.notEqual(scenario.modeled_result, "type_error",
+            "value-dependent errors must not be confused with modeled type errors");
+        }
         const ErrorType = globalThis[scenario.expected_error];
         assert.equal(typeof ErrorType, "function", `unknown error type: ${scenario.expected_error}`);
         assert.throws(() => operation(left, right), ErrorType);
         return;
       }
-      assertSameValue(operation(left, right), decodeExpected(scenario.expected));
+      const actual = operation(left, right);
+      assertModeledCategory(scenario, actual);
+      assertSameValue(actual, decodeExpected(scenario.expected));
     });
   }
 });
