@@ -40,7 +40,7 @@ function assertMatchesModel(entry, actual) {
     case "operand": {
       const left = primitiveValues[entry.left];
       const right = primitiveValues[entry.right];
-      const expectedOperand = left ? right : left;
+      const expectedOperand = entry.operator === "logical_and" ? (left ? right : left) : (left ? left : right);
       assert.ok(Object.is(actual, expectedOperand), "logical operator returns selected operand");
       break;
     }
