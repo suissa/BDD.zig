@@ -1,5 +1,6 @@
 const std = @import("std");
 const cases = @import("semantic_cases.zig");
+const operators = @import("operator_interaction.zig");
 
 const ExportCase = struct {
     name: []const u8,
@@ -10,6 +11,8 @@ const ExportCase = struct {
     right_partition: []const u8,
     expected: []const u8,
     expected_error: ?[]const u8,
+    modeled_result: []const u8,
+    modeled_outcome: []const u8,
 };
 
 pub fn main() !void {
@@ -25,6 +28,8 @@ pub fn main() !void {
             .right_partition = @tagName(case.right_partition),
             .expected = case.expected,
             .expected_error = case.expected_error,
+            .modeled_result = @tagName(operators.classify(case.left_type, case.right_type, case.operator).result),
+            .modeled_outcome = @tagName(operators.classify(case.left_type, case.right_type, case.operator).outcome),
         };
     }
     const json = try std.json.Stringify.valueAlloc(allocator, output, .{});
