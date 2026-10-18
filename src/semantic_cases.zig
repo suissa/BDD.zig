@@ -43,10 +43,14 @@ pub const cases = [_]ConcreteCase{
     .{ .name = "bitwise AND converts Number operands", .left_type = .number, .right_type = .number, .operator = .bitwise_and, .left_partition = .ordinary, .right_partition = .zero, .expected = "0" },
     .{ .name = "strict equality does not coerce", .left_type = .string, .right_type = .number, .operator = .strict_equal, .left_partition = .numeric_string_two, .right_partition = .ordinary, .expected = "false" },
     .{ .name = "loose equality coerces numeric string", .left_type = .string, .right_type = .number, .operator = .loose_equal, .left_partition = .numeric_string_two, .right_partition = .numeric_two, .expected = "true" },
+    .{ .name = "null loosely equals undefined", .left_type = .null, .right_type = .undefined, .operator = .loose_equal, .left_partition = .null_value, .right_partition = .undefined_value, .expected = "true" },
+    .{ .name = "boolean converts to number during subtraction", .left_type = .boolean, .right_type = .number, .operator = .subtract, .left_partition = .ordinary, .right_partition = .ordinary, .expected = "0" },
+    .{ .name = "BigInt strict equality preserves type", .left_type = .bigint, .right_type = .bigint, .operator = .strict_equal, .left_partition = .ordinary, .right_partition = .ordinary, .expected = "true" },
+    .{ .name = "string relational comparison is lexical", .left_type = .string, .right_type = .string, .operator = .less_than, .left_partition = .numeric_string, .right_partition = .ordinary, .expected = "true" },
 };
 
 test "concrete semantic cases are linked to classified operator rules" {
-    try std.testing.expectEqual(@as(usize, 25), cases.len);
+    try std.testing.expectEqual(@as(usize, 29), cases.len);
     for (cases) |case| {
         const rule = operators.classify(case.left_type, case.right_type, case.operator);
         try std.testing.expect(case.name.len > 0);
