@@ -12,8 +12,7 @@ const ExportCase = struct {
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    const count = operators.caseCount();
-    const output = try allocator.alloc(ExportCase, count);
+    const output = try allocator.alloc(ExportCase, operators.caseCount());
     var i: usize = 0;
     for (ast.primitives) |left| {
         for (ast.primitives) |right| {
