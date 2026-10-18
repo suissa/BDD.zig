@@ -4,9 +4,9 @@ The operator model is exported by Zig itself. CI serializes all 7 × 7 × 15 = 7
 
 For every generated operator case, the reference test checks the modeled result category or verifies a modeled `TypeError`.
 
-Concrete value cases now have a single source of truth: `src/semantic_cases.zig`. The exporter `src/export_semantic_cases.zig` serializes those typed cases and expected values/errors to `tests/generated-semantic-cases.json`. The Node suite reads that generated manifest; the 25 scenarios are no longer duplicated in JavaScript. Partition names are resolved to concrete JavaScript values at execution time, and successful results are compared using `Object.is`, including a dedicated `NaN` check. Expected errors are checked by class.
+Concrete value cases now have a single source of truth: `src/semantic_cases.zig`. The exporter `src/export_semantic_cases.zig` serializes those typed cases and expected values/errors to `tests/generated-semantic-cases.json`. The Node suite reads that generated manifest; the 29 scenarios are no longer duplicated in JavaScript. Partition names are resolved to concrete JavaScript values at execution time, and successful results are compared using `Object.is`, including a dedicated `NaN` check. Expected errors are checked by class.
 
-Coverage includes numeric/invalid/empty strings, null and undefined coercion, zero and negative zero, NaN, infinity, BigInt division/remainder by zero, negative BigInt exponent, mixed BigInt/Number errors, Symbol conversion, logical operand selection, bitwise conversion, and strict/loose equality.
+Coverage includes numeric/invalid/empty strings, null and undefined coercion, zero and negative zero, NaN, infinity, BigInt division/remainder by zero, negative BigInt exponent, mixed BigInt/Number errors, Symbol conversion, logical operand selection, bitwise conversion, Boolean-to-Number coercion, lexical string comparison, and strict/loose equality (including null/undefined and BigInt type preservation).
 
 This is focused differential regression coverage, not exhaustive ECMAScript conformance.
 
