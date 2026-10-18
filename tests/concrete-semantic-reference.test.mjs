@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 const operations = {
   add: (a, b) => a + b,
@@ -19,31 +20,49 @@ const operations = {
   bitwise_and: (a, b) => a & b,
 };
 
-const scenarios = [
-  { name: "numeric string subtraction", op: "subtract", left: "8", right: 3, expected: 5 },
-  { name: "invalid numeric string produces NaN", op: "subtract", left: "not-a-number", right: 1, expected: NaN },
-  { name: "empty string converts to zero", op: "multiply", left: "", right: 7, expected: 0 },
-  { name: "null converts to zero in addition", op: "add", left: null, right: 1, expected: 1 },
-  { name: "undefined produces NaN in addition", op: "add", left: undefined, right: 1, expected: NaN },
-  { name: "number division by positive zero", op: "divide", left: 1, right: 0, expected: Infinity },
-  { name: "zero divided by zero", op: "divide", left: 0, right: 0, expected: NaN },
-  { name: "negative zero is preserved", op: "multiply", left: -0, right: 1, expected: -0 },
-  { name: "NaN relational comparison is false", op: "less_than", left: NaN, right: 1, expected: false },
-  { name: "NaN loose equality is false", op: "loose_equal", left: NaN, right: NaN, expected: false },
-  { name: "positive infinity remains infinity", op: "multiply", left: Infinity, right: 2, expected: Infinity },
-  { name: "BigInt division by zero throws RangeError", op: "divide", left: 8n, right: 0n, error: RangeError },
-  { name: "BigInt remainder by zero throws RangeError", op: "remainder", left: 8n, right: 0n, error: RangeError },
-  { name: "negative BigInt exponent throws RangeError", op: "exponent", left: 2n, right: -1n, error: RangeError },
-  { name: "mixed BigInt and Number arithmetic throws TypeError", op: "subtract", left: 2n, right: 1, error: TypeError },
-  { name: "Symbol numeric conversion throws TypeError", op: "multiply", left: Symbol("x"), right: 2, error: TypeError },
-  { name: "string plus BigInt concatenates", op: "add", left: "value=", right: 2n, expected: "value=2" },
-  { name: "logical AND returns falsy left operand", op: "logical_and", left: 0, right: "right", expected: 0 },
-  { name: "logical OR returns truthy left operand", op: "logical_or", left: "left", right: "right", expected: "left" },
-  { name: "logical OR returns right operand for falsy left", op: "logical_or", left: "", right: 9, expected: 9 },
-  { name: "bitwise AND converts Number operands", op: "bitwise_and", left: 6, right: 3, expected: 2 },
-  { name: "strict equality does not coerce", op: "strict_equal", left: "2", right: 2, expected: false },
-  { name: "loose equality coerces numeric string", op: "loose_equal", left: "2", right: 2, expected: true },
-];
+function valueFor(type, partition) {
+  if (partition === "nan") return NaN;
+  if (partition === "positive_infinity") return Infinity;
+  if (partition === "negative_zero") return -0;
+  if (partition === "symbol_value") return Symbol("x");
+  if (partition === "null_value" || type === "null") return null;
+  if (partition === "undefined_value" || type === "undefined") return undefined;
+  if (partition === "bigint_zero") return 0n;
+  if (partition === "bigint_negative") return -1n;
+  if (partition === "zero" || partition === "falsy") {
+    if (type === "bigint") return 0n;
+    if (type === "string") return "";
+    if (type === "boolean") return false;
+    return 0;
+  }
+  if (partition === "empty") return "";
+  if (partition === "numeric_string") return "8";
+  if (partition === "invalid_numeric_string") return "not-a-number";
+  if (partition === "truthy") {
+    if (type === "string") return "left";
+    if (type === "boolean") return true;
+    if (type === "bigint") return 1n;
+    return 1;
+  }
+  if (partition === "negative") return type === "bigint" ? -1n : -1;
+  if (type === "string") return "x";
+  if (type === "number") return 1;
+  if (type === "bigint") return 1n;
+  if (type === "boolean") return true;
+  if (type === "symbol") return Symbol("x");
+  if (type === "null") return null;
+  if (type === "undefined") return undefined;
+  throw new Error(`Unknown primitive type: ${type}`);
+}
+
+function decodeExpected(encoded) {
+  if (encoded === "NaN") return NaN;
+  if (encoded === "Infinity") return Infinity;
+  if (encoded === "-Infinity") return -Infinity;
+  if (encoded === "-0") return -0;
+  if (/^-?\d+n$/.test(encoded)) return BigInt(encoded.slice(0, -1));
+  return JSON.parse(encoded);
+}
 
 function assertSameValue(actual, expected) {
   if (typeof expected === "number" && Number.isNaN(expected)) {
@@ -53,16 +72,23 @@ function assertSameValue(actual, expected) {
   assert.ok(Object.is(actual, expected), `expected ${String(expected)}, received ${String(actual)}`);
 }
 
-test("concrete value partitions match ECMAScript runtime results", async (t) => {
-  for (const scenario of scenarios) {
+test("Zig-authored concrete semantic cases match ECMAScript runtime", async (t) => {
+  const cases = JSON.parse(await readFile("tests/generated-semantic-cases.json", "utf8"));
+  assert.equal(cases.length, 25, "the exported manifest must include every canonical Zig case");
+
+  for (const scenario of cases) {
     await t.test(scenario.name, () => {
-      const operation = operations[scenario.op];
-      assert.equal(typeof operation, "function", `unknown operator: ${scenario.op}`);
-      if (scenario.error) {
-        assert.throws(() => operation(scenario.left, scenario.right), scenario.error);
+      const operation = operations[scenario.operator];
+      assert.equal(typeof operation, "function", `unknown operator: ${scenario.operator}`);
+      const left = valueFor(scenario.left_type, scenario.left_partition);
+      const right = valueFor(scenario.right_type, scenario.right_partition);
+      if (scenario.expected_error) {
+        const ErrorType = globalThis[scenario.expected_error];
+        assert.equal(typeof ErrorType, "function", `unknown error type: ${scenario.expected_error}`);
+        assert.throws(() => operation(left, right), ErrorType);
         return;
       }
-      assertSameValue(operation(scenario.left, scenario.right), scenario.expected);
+      assertSameValue(operation(left, right), decodeExpected(scenario.expected));
     });
   }
 });
