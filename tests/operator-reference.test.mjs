@@ -30,21 +30,57 @@ const operations = {
   bitwise_and: (a, b) => a & b,
 };
 
-function assertMatchesModel(entry, actual) {
+
+const valuePartitions = {
+  string: ["", "0", "2", "not-a-number"],
+  number: [0, -0, 2, NaN, Infinity, -Infinity],
+  bigint: [0n, 1n, -1n, 2n],
+  boolean: [false, true],
+  symbol: [Symbol("partition-a"), Symbol("partition-b")],
+  null: [null],
+  undefined: [undefined],
+};
+
+function assertValueOutcome(entry, left, right, context) {
+  const operation = operations[entry.operator];
+  let actual;
+  let thrown;
+  try {
+    actual = operation(left, right);
+  } catch (error) {
+    thrown = error;
+  }
+
+  if (entry.outcome === "type_error") {
+    assert.ok(thrown instanceof TypeError,
+      `${context}: classifier predicted TypeError; received ${thrown?.constructor?.name ?? "a value"}`);
+    return;
+  }
+
+  if (thrown) {
+    assert.ok(!(thrown instanceof TypeError),
+      `${context}: classifier did not predict TypeError but runtime threw TypeError: ${thrown.message}`);
+    return; // RangeError is value-dependent (e.g. BigInt division by zero).
+  }
+
+  assertMatchesModel(entry, actual, context);
+}
+
+function assertMatchesModel(entry, actual, context = `${entry.left} ${entry.operator} ${entry.right}`) {
   switch (entry.result) {
-    case "string": assert.equal(typeof actual, "string"); break;
-    case "boolean": assert.equal(typeof actual, "boolean"); break;
-    case "bigint": assert.equal(typeof actual, "bigint"); break;
+    case "string": assert.equal(typeof actual, "string", context); break;
+    case "boolean": assert.equal(typeof actual, "boolean", context); break;
+    case "bigint": assert.equal(typeof actual, "bigint", context); break;
     case "number_or_nan":
-    case "number": assert.equal(typeof actual, "number"); break;
+    case "number": assert.equal(typeof actual, "number", context); break;
     case "operand": {
       const left = primitiveValues[entry.left];
       const right = primitiveValues[entry.right];
       const expectedOperand = entry.operator === "logical_and" ? (left ? right : left) : (left ? left : right);
-      assert.ok(Object.is(actual, expectedOperand), "logical operator returns selected operand");
+      assert.ok(Object.is(actual, expectedOperand), `${context}: logical operator must return selected operand`);
       break;
     }
-    default: assert.fail(`Unexpected successful result category: ${entry.result}`);
+    default: assert.fail(`${context}: unexpected successful result category: ${entry.result}`);
   }
 }
 
@@ -69,4 +105,26 @@ test("Zig-generated 735-case matrix agrees with JavaScript runtime", async (t) =
       assertMatchesModel(entry, actual);
     });
   }
+});
+
+test("classifier remains consistent across concrete value partitions", async (t) => {
+  const matrix = JSON.parse(await readFile("tests/generated-operator-matrix.json", "utf8"));
+  let checked = 0;
+
+  for (const entry of matrix) {
+    const leftValues = valuePartitions[entry.left];
+    const rightValues = valuePartitions[entry.right];
+    for (let leftIndex = 0; leftIndex < leftValues.length; leftIndex += 1) {
+      for (let rightIndex = 0; rightIndex < rightValues.length; rightIndex += 1) {
+        const left = leftValues[leftIndex];
+        const right = rightValues[rightIndex];
+        const context = `${entry.left}[${leftIndex}] ${entry.operator} ${entry.right}[${rightIndex}] (modeled=${entry.result}/${entry.outcome})`;
+        assertValueOutcome(entry, left, right, context);
+        checked += 1;
+      }
+    }
+  }
+
+  assert.ok(checked >= matrix.length, `expected partition checks across all ${matrix.length} classifier rules; checked ${checked}`);
+  console.log(`Validated ${checked} concrete operand combinations across ${matrix.length} classifier rules.`);
 });
