@@ -4,11 +4,12 @@ The operator model is exported by Zig itself. CI serializes all 7 × 7 × 15 = 7
 
 For every generated case, the reference test checks the modeled result category (string, number/NaN, BigInt, boolean, or operand) or verifies a modeled TypeError. The expected matrix comes from `classify` in Zig, not from a second hand-maintained classification table.
 
-The representative value for each primitive is stable: string `"2"`, number `2`, BigInt `2n`, boolean `true`, Symbol, `null`, and `undefined`. Value-sensitive edge cases such as NaN, negative zero, BigInt division by zero, and negative BigInt exponent remain in the dedicated regression tests.
+The generated matrix uses one representative value per primitive kind. A second suite, `tests/concrete-semantic-reference.test.mjs`, checks value partitions against the actual JavaScript runtime and compares concrete results with `Object.is` (with an explicit NaN check). It includes numeric and invalid strings, empty strings, null/undefined coercion, zero and negative zero, NaN, infinities, BigInt zero division/remainder, negative BigInt exponent, mixed BigInt/Number errors, Symbol conversion, logical operand identity, and equality coercion.
 
-This is differential coverage over one representative per primitive kind, not exhaustive ECMAScript conformance. Expand value partitions next and compare normalized concrete values as well as result categories.
+These are focused differential regression tests, not exhaustive ECMAScript conformance. The concrete suite currently contains 23 hand-authored boundary scenarios; the next improvement is to derive scenario definitions from the Zig semantic-case source so the expected cases have a single source of truth.
 
 Run locally:
 1. `zig build test`
 2. `zig run src/export_operator_matrix.zig`
 3. `node --test tests/operator-reference.test.mjs`
+4. `node --test tests/concrete-semantic-reference.test.mjs`
