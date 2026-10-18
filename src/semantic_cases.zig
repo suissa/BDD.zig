@@ -2,7 +2,7 @@ const std = @import("std");
 const ast = @import("semantic_ast.zig");
 const operators = @import("operator_interaction.zig");
 
-pub const Partition = enum { ordinary, empty, numeric_string, invalid_numeric_string, zero, negative, nan, positive_infinity, negative_zero, bigint_zero, bigint_negative, truthy, falsy, symbol_value, null_value, undefined_value };
+pub const Partition = enum { ordinary, empty, numeric_string, numeric_string_two, invalid_numeric_string, zero, negative, nan, positive_infinity, negative_zero, bigint_zero, bigint_negative, truthy, falsy, symbol_value, null_value, undefined_value };
 
 pub const ConcreteCase = struct {
     name: []const u8,
@@ -41,8 +41,8 @@ pub const cases = [_]ConcreteCase{
     .{ .name = "logical OR returns truthy left operand", .left_type = .string, .right_type = .string, .operator = .logical_or, .left_partition = .truthy, .right_partition = .ordinary, .expected = "\"left\"" },
     .{ .name = "logical OR returns right operand for falsy left", .left_type = .string, .right_type = .number, .operator = .logical_or, .left_partition = .empty, .right_partition = .ordinary, .expected = "1" },
     .{ .name = "bitwise AND converts Number operands", .left_type = .number, .right_type = .number, .operator = .bitwise_and, .left_partition = .ordinary, .right_partition = .zero, .expected = "0" },
-    .{ .name = "strict equality does not coerce", .left_type = .string, .right_type = .number, .operator = .strict_equal, .left_partition = .numeric_string, .right_partition = .ordinary, .expected = "false" },
-    .{ .name = "loose equality coerces numeric string", .left_type = .string, .right_type = .number, .operator = .loose_equal, .left_partition = .numeric_string, .right_partition = .ordinary, .expected = "true" },
+    .{ .name = "strict equality does not coerce", .left_type = .string, .right_type = .number, .operator = .strict_equal, .left_partition = .numeric_string_two, .right_partition = .ordinary, .expected = "false" },
+    .{ .name = "loose equality coerces numeric string", .left_type = .string, .right_type = .number, .operator = .loose_equal, .left_partition = .numeric_string_two, .right_partition = .ordinary, .expected = "true" },
 };
 
 test "concrete semantic cases are linked to classified operator rules" {
