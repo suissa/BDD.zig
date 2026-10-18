@@ -20,5 +20,7 @@ jobs:
         run: zig run src/export_operator_matrix.zig
       - name: Run JavaScript semantic reference tests
         run: node --test tests/operator-reference.test.mjs
+      - name: Export canonical concrete semantic cases from Zig
+        run: zig run src/export_semantic_cases.zig
       - name: Run concrete value partition tests
         run: node --test tests/concrete-semantic-reference.test.mjs
