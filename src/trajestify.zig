@@ -71,6 +71,18 @@ pub const FirstDivergence = struct {
     observed: ?std.json.Value = null,
 };
 
+pub const CausalPathNode = struct { eventId: []const u8, clauseId: []const u8 };
+pub const RootCauseCandidate = struct {
+    eventId: []const u8,
+    clauseId: []const u8,
+    confidence: enum { candidate },
+    basis: enum { first_divergence },
+};
+pub const ArtifactDiagnostics = struct {
+    rootCause: ?RootCauseCandidate,
+    causalPath: []const CausalPathNode,
+};
+
 pub const TrajectoryArtifact = struct {
     schemaVersion: u8,
     runId: []const u8,
@@ -87,6 +99,7 @@ pub const TrajectoryArtifact = struct {
     finishedAt: []const u8,
     steps: []const ArtifactStep,
     firstDivergence: ?FirstDivergence,
+    diagnostics: ArtifactDiagnostics,
     summary: ArtifactSummary,
 };
 
@@ -105,6 +118,7 @@ pub const ValidationError = error{
     InconsistentStatus,
     MissingFirstDivergence,
     InvalidFirstDivergence,
+    InvalidDiagnostics,
 };
 
 fn nonEmpty(value: []const u8) bool {
@@ -203,6 +217,42 @@ pub fn validateArtifact(artifact: TrajectoryArtifact) ValidationError!void {
         }
     } else if (failed > 0 or diverged > 0) {
         return error.MissingFirstDivergence;
+    }
+
+    const diagnostics = artifact.diagnostics;
+    if (artifact.firstDivergence) |first| {
+        const root = diagnostics.rootCause orelse return error.InvalidDiagnostics;
+        if (!std.mem.eql(u8, root.eventId, first.eventId) or
+            !std.mem.eql(u8, root.clauseId, artifact.steps[first.sequence - 1].clauseId))
+            return error.InvalidDiagnostics;
+        if (diagnostics.causalPath.len == 0) return error.InvalidDiagnostics;
+        const last = diagnostics.causalPath[diagnostics.causalPath.len - 1];
+        if (!std.mem.eql(u8, last.eventId, first.eventId) or
+            !std.mem.eql(u8, last.clauseId, artifact.steps[first.sequence - 1].clauseId))
+            return error.InvalidDiagnostics;
+        for (diagnostics.causalPath, 0..) |node, i| {
+            var matched: ?usize = null;
+            for (artifact.steps, 0..) |step, step_index| {
+                if (std.mem.eql(u8, step.eventId, node.eventId) and std.mem.eql(u8, step.clauseId, node.clauseId)) {
+                    matched = step_index;
+                    break;
+                }
+            }
+            const current_index = matched orelse return error.InvalidDiagnostics;
+            if (i > 0) {
+                const previous = diagnostics.causalPath[i - 1];
+                var linked = false;
+                for (artifact.steps[current_index].causedBy) |cause_id| {
+                    if (std.mem.eql(u8, cause_id, previous.eventId)) {
+                        linked = true;
+                        break;
+                    }
+                }
+                if (!linked) return error.InvalidDiagnostics;
+            }
+        }
+    } else if (diagnostics.rootCause != null or diagnostics.causalPath.len != 0) {
+        return error.InvalidDiagnostics;
     }
 }
 
