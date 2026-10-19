@@ -46,7 +46,7 @@ jobs:
             When('sales', 'Sale persisted', () => true),
             And('financial', 'Financial transaction recorded', () => true),
             Then('stock', 'Stock equals 8', c => { c.stock = 9; return c.stock === 8; }),
-            And('delivery', 'Delivery stage captured', c => { c.delivery = true; return true; }),
+            And('then', 'delivery', 'Delivery stage captured', c => { c.delivery = true; return true; }),
           ]);
           const artifact = await runTrajectory(intent, context, { runId: 'ci-stock-divergence' });
           if (artifact.firstDivergence?.sequence !== 4 || artifact.steps.length !== 5 || artifact.steps[4]?.clauseId !== 'delivery') {
