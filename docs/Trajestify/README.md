@@ -376,3 +376,15 @@ The Zig module `src/trajestify.zig` is the first cross-language consumer of the 
 - summary counts and consistency between intent and trajectory status.
 
 The adapter is deliberately a validator and data-contract boundary, not a second DSL executor: expressions remain data and Zig does not evaluate arbitrary DSL strings. It targets the repository's currently pinned Zig 0.15.2 toolchain. The native Zig test suite imports this module so contract regressions are checked in CI.
+
+
+### Executable cross-runtime contract check
+
+Run the validator against JSON emitted by the TypeScript compiler or runtime:
+
+```sh
+zig run src/trajestify_validate.zig -- ir artifacts/trajestify-ir.json
+zig run src/trajestify_validate.zig -- artifact artifacts/trajestify-stock-divergence.json
+```
+
+The Trajestify CI compiles the canonical `.traj` example into IR, creates a real runtime divergence artifact, and passes both files through the Zig validator. This checks the producer/consumer boundary using generated data rather than only hand-authored fixtures.
