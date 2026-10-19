@@ -103,6 +103,8 @@ pub const ValidationError = error{
     InvalidArtifactSequence,
     InvalidSummary,
     InconsistentStatus,
+    MissingFirstDivergence,
+    InvalidFirstDivergence,
 };
 
 fn nonEmpty(value: []const u8) bool {
@@ -187,9 +189,21 @@ pub fn validateArtifact(artifact: TrajectoryArtifact) ValidationError!void {
     const summary = artifact.summary;
     if (summary.passed != passed or summary.failed != failed or summary.diverged != diverged or summary.blocked != blocked or summary.skipped != skipped) return error.InvalidSummary;
     if (artifact.intent.status != artifact.trajectory.status) return error.InconsistentStatus;
-    if ((artifact.intent.status == .passed and (failed != 0 or diverged != 0)) or
-        (artifact.intent.status == .failed and failed == 0) or
-        (artifact.intent.status == .diverged and diverged == 0)) return error.InconsistentStatus;
+
+    const expected_status: ArtifactIntentStatus = if (failed > 0) .failed else if (diverged > 0) .diverged else .passed;
+    if (artifact.intent.status != expected_status) return error.InconsistentStatus;
+
+    if (artifact.firstDivergence) |first| {
+        if (first.sequence == 0 or first.sequence > artifact.steps.len) return error.InvalidFirstDivergence;
+        const step = artifact.steps[first.sequence - 1];
+        if (!std.mem.eql(u8, first.eventId, step.eventId)) return error.InvalidFirstDivergence;
+        switch (first.category) {
+            .assertion_mismatch => if (step.status != .diverged) return error.InvalidFirstDivergence,
+            .execution_error => if (step.status != .failed and step.status != .@"error") return error.InvalidFirstDivergence,
+        }
+    } else if (failed > 0 or diverged > 0) {
+        return error.MissingFirstDivergence;
+    }
 }
 
 test "validates IR and rejects duplicate clause IDs" {
@@ -241,4 +255,60 @@ test "rejects malformed artifact sequence and mismatched summary" {
         .summary = .{ .passed = 1, .failed = 0, .diverged = 0, .blocked = 0, .skipped = 0 },
     };
     try std.testing.expectError(error.InvalidArtifactSequence, validateArtifact(artifact));
+}
+
+
+test "rejects artifact whose first divergence points to the wrong event" {
+    const artifact = TrajectoryArtifact{
+        .schemaVersion = 1,
+        .runId = "run-1",
+        .intent = .{ .id = "buy_product", .title = "Buy product", .status = .diverged },
+        .trajectory = .{ .id = "purchase_product", .status = .diverged },
+        .startedAt = "2026-10-19T00:00:00.000Z",
+        .finishedAt = "2026-10-19T00:00:01.000Z",
+        .steps = &.{.{
+            .eventId = "run-1:evt:1",
+            .sequence = 1,
+            .clauseId = "stock",
+            .kind = "then",
+            .status = .diverged,
+            .startedAt = "2026-10-19T00:00:00.000Z",
+            .finishedAt = "2026-10-19T00:00:00.001Z",
+            .durationMs = 1,
+            .causedBy = &.{},
+        }},
+        .firstDivergence = .{
+            .eventId = "run-1:evt:9",
+            .sequence = 1,
+            .category = .assertion_mismatch,
+            .message = "Stock expected 8 but got 9",
+        },
+        .summary = .{ .passed = 0, .failed = 0, .diverged = 1, .blocked = 0, .skipped = 0 },
+    };
+    try std.testing.expectError(error.InvalidFirstDivergence, validateArtifact(artifact));
+}
+
+test "requires first divergence whenever an artifact contains failed or diverged steps" {
+    const artifact = TrajectoryArtifact{
+        .schemaVersion = 1,
+        .runId = "run-1",
+        .intent = .{ .id = "buy_product", .title = "Buy product", .status = .diverged },
+        .trajectory = .{ .id = "purchase_product", .status = .diverged },
+        .startedAt = "2026-10-19T00:00:00.000Z",
+        .finishedAt = "2026-10-19T00:00:01.000Z",
+        .steps = &.{.{
+            .eventId = "run-1:evt:1",
+            .sequence = 1,
+            .clauseId = "stock",
+            .kind = "then",
+            .status = .diverged,
+            .startedAt = "2026-10-19T00:00:00.000Z",
+            .finishedAt = "2026-10-19T00:00:00.001Z",
+            .durationMs = 1,
+            .causedBy = &.{},
+        }},
+        .firstDivergence = null,
+        .summary = .{ .passed = 0, .failed = 0, .diverged = 1, .blocked = 0, .skipped = 0 },
+    };
+    try std.testing.expectError(error.MissingFirstDivergence, validateArtifact(artifact));
 }
