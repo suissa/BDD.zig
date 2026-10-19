@@ -49,7 +49,7 @@ pub const ArtifactStep = struct {
     expected: ?std.json.Value = null,
     observed: ?std.json.Value = null,
     source: ?SourceLocation = null,
-    error: ?ArtifactError = null,
+    @"error": ?ArtifactError = null,
 };
 
 pub const ArtifactError = struct { name: []const u8, message: []const u8 };
