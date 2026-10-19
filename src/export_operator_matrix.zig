@@ -8,6 +8,7 @@ const ExportCase = struct {
     operator: []const u8,
     result: []const u8,
     outcome: []const u8,
+    rationale: []const u8,
 };
 
 pub fn main() !void {
@@ -24,6 +25,7 @@ pub fn main() !void {
                     .operator = @tagName(op),
                     .result = @tagName(rule.result),
                     .outcome = @tagName(rule.outcome),
+                    .rationale = rule.rationale,
                 };
                 i += 1;
             }
