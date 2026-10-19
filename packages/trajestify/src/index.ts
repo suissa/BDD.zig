@@ -130,11 +130,11 @@ export async function runTrajectory<C>(
           const assertion = result as AssertionObservation;
           expected = assertion.expected;
           observed = assertion.observed;
-          if (!assertion.passed && clause.kind === "then") status = "diverged";
+          if (!assertion.passed && (clause.kind === "then" || clause.kind === "invariant")) status = "diverged";
         } else {
           observed = result;
           // Returning false from Then is supported as a minimal assertion, but expectValue preserves diagnostic values.
-          if (observed === false && clause.kind === "then") status = "diverged";
+          if (observed === false && (clause.kind === "then" || clause.kind === "invariant")) status = "diverged";
         }
       } catch (error) {
         status = "failed";
@@ -202,3 +202,6 @@ export function assertTrajectoryPassed(artifact: TrajectoryArtifact): void {
 
 export { parseTrajestify, TrajestifyParseError } from "./parser.js";
 export type { TrajestifyDocument, DslClause, DslClauseKind } from "./parser.js";
+
+export { bindTrajectory, compileToIR, TrajestifyBindingError } from "./compiler.js";
+export type { TrajectoryIR, StepBinding, StepBindings } from "./compiler.js";
