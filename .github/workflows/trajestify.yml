@@ -6,6 +6,7 @@ on:
     paths:
       - "packages/trajestify/**"
       - "examples/**"
+      - "src/trajestify*.zig"
       - "docs/Trajestify/**"
       - ".github/workflows/trajestify.yml"
   pull_request:
