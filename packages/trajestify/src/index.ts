@@ -229,7 +229,7 @@ function buildDiagnostics(steps: StepEvent[], firstDivergence: TrajectoryArtifac
   };
 }
 
-export type RootCauseHypothesisRule = "assertion_mismatch" | "execution_error" | "upstream_state_candidate";
+export type RootCauseHypothesisRule = "assertion_mismatch" | "execution_error" | "upstream_state_candidate" | "historical_recurrence";
 export interface RootCauseHypothesis {
   id: string;
   rule: RootCauseHypothesisRule;
@@ -244,7 +244,7 @@ export interface RootCauseHypothesis {
  * Derives explainable hypotheses from one artifact. These are leads for investigation,
  * not proof of causality; no historical or external evidence is inferred.
  */
-export function inferRootCauseHypotheses(artifact: TrajectoryArtifact): RootCauseHypothesis[] {
+export function inferRootCauseHypotheses(artifact: TrajectoryArtifact, history: readonly TrajectoryArtifact[] = []): RootCauseHypothesis[] {
   const divergence = artifact.firstDivergence;
   if (!divergence) return [];
   const step = artifact.steps.find(candidate => candidate.eventId === divergence.eventId);
@@ -289,6 +289,33 @@ export function inferRootCauseHypotheses(artifact: TrajectoryArtifact): RootCaus
         evidenceEventIds: [predecessorStep.eventId, step.eventId],
       });
     }
+  }
+  const currentStartedAt = Date.parse(artifact.startedAt);
+  const comparableHistory = history.filter(previous =>
+    previous.trajectory.id === artifact.trajectory.id &&
+    previous.runId !== artifact.runId &&
+    Number.isFinite(Date.parse(previous.finishedAt)) &&
+    Number.isFinite(currentStartedAt) &&
+    Date.parse(previous.finishedAt) <= currentStartedAt
+  );
+  const recurring = comparableHistory.flatMap(previous => {
+    const priorStep = previous.steps.find(candidate =>
+      candidate.clauseId === step.clauseId &&
+      (candidate.status === "diverged" || candidate.status === "failed" || candidate.status === "error")
+    );
+    return priorStep ? [{ artifact: previous, step: priorStep }] : [];
+  });
+  if (recurring.length > 0) {
+    const evidenceEventIds = [step.eventId, ...recurring.map(item => item.step.eventId)];
+    hypotheses.push({
+      id: `hypothesis:${step.clauseId}:historical-recurrence`,
+      rule: "historical_recurrence",
+      eventId: step.eventId,
+      clauseId: step.clauseId,
+      confidence: recurring.length >= 2 ? "medium" : "low",
+      rationale: `The same clause failed or diverged in ${recurring.length} of ${comparableHistory.length} eligible earlier run(s) of this trajectory.`,
+      evidenceEventIds,
+    });
   }
   return hypotheses;
 }
