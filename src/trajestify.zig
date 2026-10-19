@@ -150,6 +150,12 @@ fn cloneIR(allocator: std.mem.Allocator, ir: TrajectoryIR) !TrajectoryIR {
     return try std.json.parseFromSliceLeaky(TrajectoryIR, allocator, try std.json.Stringify.valueAlloc(allocator, ir, .{}), .{ .allocate = .alloc_always, .ignore_unknown_fields = false });
 }
 
+pub fn parseArtifact(allocator: std.mem.Allocator, json_bytes: []const u8) !TrajectoryArtifact {
+    const artifact = try std.json.parseFromSliceLeaky(TrajectoryArtifact, allocator, json_bytes, .{ .allocate = .alloc_always, .ignore_unknown_fields = false });
+    try validateArtifact(artifact);
+    return artifact;
+}
+
 pub fn validateArtifact(artifact: TrajectoryArtifact) ValidationError!void {
     if (artifact.schemaVersion != 1) return error.UnsupportedSchemaVersion;
     if (!nonEmpty(artifact.runId) or !nonEmpty(artifact.intent.id) or !nonEmpty(artifact.trajectory.id)) return error.EmptyIdentifier;
