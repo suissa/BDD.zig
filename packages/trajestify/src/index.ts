@@ -41,6 +41,14 @@ export interface StepEvent {
   source?: SourceLocation;
   error?: { name: string; message: string };
 }
+export interface CausalPathNode { eventId: string; clauseId: string }
+export interface TrajectoryDiagnostics {
+  /** Candidate only: the first observed divergence is not proof of the underlying defect. */
+  rootCause: null | { eventId: string; clauseId: string; confidence: "candidate"; basis: "first_divergence" };
+  /** Ordered from the earliest reachable cause to the first divergent event. */
+  causalPath: CausalPathNode[];
+}
+
 export interface TrajectoryArtifact {
   schemaVersion: 1;
   runId: string;
@@ -49,6 +57,7 @@ export interface TrajectoryArtifact {
   startedAt: string;
   finishedAt: string;
   steps: StepEvent[];
+  diagnostics: TrajectoryDiagnostics;
   firstDivergence: null | {
     eventId: string;
     sequence: number;
@@ -190,7 +199,33 @@ export async function runTrajectory<C>(
     finishedAt: finished.toISOString(),
     steps,
     firstDivergence,
+    diagnostics: buildDiagnostics(steps, firstDivergence),
     summary,
+  };
+}
+
+function buildDiagnostics(steps: StepEvent[], firstDivergence: TrajectoryArtifact["firstDivergence"]): TrajectoryDiagnostics {
+  if (!firstDivergence) return { rootCause: null, causalPath: [] };
+
+  const byId = new Map(steps.map(step => [step.eventId, step]));
+  const reversePath: CausalPathNode[] = [];
+  const visited = new Set<string>();
+  let current: StepEvent | undefined = byId.get(firstDivergence.eventId);
+
+  while (current && !visited.has(current.eventId)) {
+    visited.add(current.eventId);
+    reversePath.push({ eventId: current.eventId, clauseId: current.clauseId });
+    // The artifact validator rejects unknown/future links; runtime diagnostics remain defensive.
+    current = current.causedBy.map(id => byId.get(id)).find((step): step is StepEvent => Boolean(step));
+  }
+
+  reversePath.reverse();
+  const divergentStep = byId.get(firstDivergence.eventId);
+  return {
+    rootCause: divergentStep
+      ? { eventId: divergentStep.eventId, clauseId: divergentStep.clauseId, confidence: "candidate", basis: "first_divergence" }
+      : null,
+    causalPath: reversePath,
   };
 }
 
