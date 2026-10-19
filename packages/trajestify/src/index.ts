@@ -18,6 +18,7 @@ export interface Clause<C> {
   text: string;
   execute: (context: C) => unknown | Promise<unknown>;
   source?: SourceLocation;
+  expected?: unknown;
   dependsOn?: string[];
 }
 export interface StepEvent {
@@ -134,6 +135,7 @@ export async function runTrajectory<C>(
       clauseId: clause.id,
       kind: clause.kind,
       status,
+      ...(clause.expected !== undefined ? { expected: clause.expected } : {}),
       observed,
       startedAt: start.toISOString(),
       finishedAt: finish.toISOString(),
@@ -182,3 +184,6 @@ export function assertTrajectoryPassed(artifact: TrajectoryArtifact): void {
     throw new Error(`Trajectory ${artifact.runId} ${artifact.intent.status}; first divergence: ${artifact.firstDivergence?.message ?? "none"}`);
   }
 }
+
+export { parseTrajestify, TrajestifyParseError } from "./parser.js";
+export type { TrajestifyDocument, DslClause, DslClauseKind } from "./parser.js";
