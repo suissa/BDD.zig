@@ -1,0 +1,5 @@
+{"caseId":"synthetic-direct-assertion","rankedHypothesisIds":["h-assertion","h-recurrence","h-upstream"],"relevantHypothesisIds":["h-assertion"],"note":"synthetic fixture; direct mismatch is the confirmed label"}
+{"caseId":"synthetic-execution-error","rankedHypothesisIds":["h-upstream","h-execution","h-recurrence"],"relevantHypothesisIds":["h-execution"],"note":"synthetic fixture; execution error is the confirmed label"}
+{"caseId":"synthetic-multiple-causes","rankedHypothesisIds":["h-upstream","h-validation","h-recurrence"],"relevantHypothesisIds":["h-upstream","h-validation"],"note":"synthetic fixture; two hypotheses are relevant"}
+{"caseId":"synthetic-recurrence","rankedHypothesisIds":["h-recurrence","h-assertion","h-noise"],"relevantHypothesisIds":["h-recurrence"],"note":"synthetic fixture; recurrence is confirmed"}
+{"caseId":"synthetic-noisy-ranking","rankedHypothesisIds":["h-noise-a","h-noise-b","h-validation"],"relevantHypothesisIds":["h-validation"],"note":"synthetic fixture; relevant candidate is ranked third"}
