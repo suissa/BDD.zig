@@ -76,7 +76,16 @@ function describeValue(value) {
   return JSON.stringify(value) ?? String(value);
 }
 
-function observeRuntime(entry, left, right) {\n  try {\n    const value = operations[entry.operator](left, right);\n    return { kind: "value", value: describeValue(value), valueType: typeof value };\n  } catch (error) {\n    return { kind: "error", name: error?.name ?? "Error", message: error?.message ?? String(error) };\n  }\n}\n\nfunction divergenceRecord(entry, left, right, context, error, leftIndex, rightIndex) {
+function observeRuntime(entry, left, right) {
+  try {
+    const value = operations[entry.operator](left, right);
+    return { kind: "value", value: describeValue(value), valueType: typeof value };
+  } catch (error) {
+    return { kind: "error", name: error?.name ?? "Error", message: error?.message ?? String(error) };
+  }
+}
+
+function divergenceRecord(entry, left, right, context, error, leftIndex, rightIndex) {
   const leftSource = valueExpression(left);
   const rightSource = valueExpression(right);
   const operator = operatorSymbols[entry.operator];
@@ -98,7 +107,8 @@ function observeRuntime(entry, left, right) {\n  try {\n    const value = operat
       expression: `(${leftSource}) ${operator} (${rightSource})`,
       snippet: `const left = ${leftSource};\nconst right = ${rightSource};\ntry { console.log((left) ${operator} (right)); } catch (error) { console.log(error.name + ": " + error.message); }`,
     },
-    observed: observeRuntime(entry, left, right),\n    divergence: error instanceof Error ? error.message : String(error),
+    observed: observeRuntime(entry, left, right),
+    divergence: error instanceof Error ? error.message : String(error),
   };
 }
 
