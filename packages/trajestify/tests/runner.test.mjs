@@ -97,3 +97,35 @@ test("does not infer root cause hypotheses for a passing trajectory", async () =
   const artifact = await runTrajectory(intent, {}, { runId: "hypothesis-clean" });
   assert.deepEqual(inferRootCauseHypotheses(artifact), []);
 });
+
+
+test("uses only earlier runs of the same trajectory as historical evidence", async () => {
+  const makeIntent = () => defineIntent("buy_product", "Buy product", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    Then("stock", "Stock is 8", () => expectValue(8, 9)),
+  ]);
+  const previous = await runTrajectory(makeIntent(), {}, { runId: "history-old" });
+  previous.startedAt = "2026-10-17T10:00:00.000Z";
+  previous.finishedAt = "2026-10-17T10:00:01.000Z";
+  const current = await runTrajectory(makeIntent(), {}, { runId: "history-current" });
+  current.startedAt = "2026-10-19T10:00:00.000Z";
+  current.finishedAt = "2026-10-19T10:00:01.000Z";
+  const hypotheses = inferRootCauseHypotheses(current, [previous]);
+  const recurring = hypotheses.find(h => h.rule === "historical_recurrence");
+  assert.ok(recurring);
+  assert.equal(recurring.clauseId, "stock");
+  assert.equal(recurring.confidence, "low");
+  assert.deepEqual(recurring.evidenceEventIds, [
+    current.firstDivergence.eventId,
+    previous.firstDivergence.eventId,
+  ]);
+
+  const future = structuredClone(previous);
+  future.runId = "history-future";
+  future.finishedAt = "2026-10-20T10:00:01.000Z";
+  assert.equal(inferRootCauseHypotheses(current, [future]).some(h => h.rule === "historical_recurrence"), false);
+  const otherTrajectory = structuredClone(previous);
+  otherTrajectory.trajectory.id = "unrelated";
+  assert.equal(inferRootCauseHypotheses(current, [otherTrajectory]).some(h => h.rule === "historical_recurrence"), false);
+});
