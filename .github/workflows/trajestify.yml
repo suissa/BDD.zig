@@ -1,0 +1,62 @@
+name: Trajestify DSL and TypeScript runtime
+
+on:
+  push:
+    branches: [main, "feat/trajestify-dsl-ts-runtime"]
+    paths:
+      - "packages/trajestify/**"
+      - "examples/**"
+      - "docs/Trajestify/**"
+      - ".github/workflows/trajestify.yml"
+  pull_request:
+    paths:
+      - "packages/trajestify/**"
+      - "examples/**"
+      - "docs/Trajestify/**"
+      - ".github/workflows/trajestify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trajestify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install package dependencies
+        working-directory: packages/trajestify
+        run: npm install --no-package-lock --ignore-scripts
+      - name: Build TypeScript runtime and run DSL/trajectory tests
+        working-directory: packages/trajestify
+        run: npm test
+      - name: Generate and validate diagnostic artifact
+        working-directory: packages/trajestify
+        run: |
+          node --input-type=module <<'NODE'
+          import { defineIntent, Given, When, Then, And, runTrajectory } from './dist/index.js';
+          import { writeFile } from 'node:fs/promises';
+          const context = { stock: 10, delivery: false };
+          const intent = defineIntent('buy_product', 'Buy product', [
+            Given('customer', 'Customer active', () => true),
+            When('sales', 'Sale persisted', () => true),
+            And('financial', 'Financial transaction recorded', () => true),
+            Then('stock', 'Stock equals 8', c => { c.stock = 9; return c.stock === 8; }),
+            And('delivery', 'Delivery stage captured', c => { c.delivery = true; return true; }),
+          ]);
+          const artifact = await runTrajectory(intent, context, { runId: 'ci-stock-divergence' });
+          if (artifact.firstDivergence?.sequence !== 4 || artifact.steps.length !== 5 || artifact.steps[4]?.clauseId !== 'delivery') {
+            throw new Error('Expected stock divergence with complete five-step trajectory');
+          }
+          await writeFile('../../artifacts/trajestify-stock-divergence.json', JSON.stringify(artifact, null, 2));
+          NODE
+      - name: Upload Trajectory Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trajestify-stock-divergence
+          path: artifacts/trajestify-stock-divergence.json
+          if-no-files-found: error
+          retention-days: 30
