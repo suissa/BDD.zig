@@ -1,0 +1,20 @@
+# Buy-product trajectory with a controlled stock divergence fixture.
+Trajestify: Buy product
+Version: 1
+
+Intent: buy_product
+Actor: Customer
+
+Trajectory: purchase_product
+Given: Customer is active
+And: Product.stock_initial == 10
+When: Customer buys Product quantity=2
+Then: Sales.order.status == "created"
+And: Financial.transaction.status == "recorded"
+And: Stock.quantity == 8
+And: Delivery.status == "scheduled"
+
+Invariant: Stock.quantity == Product.stock_initial - Intent.quantity
+Trace: full
+OnDivergence: continue
+Evidence: inputs, outputs, state, errors, causal_links
