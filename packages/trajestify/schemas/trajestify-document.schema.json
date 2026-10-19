@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trajestify.dev/schemas/trajestify-document.schema.json",
+  "title": "Trajestify Document AST v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "version",
+    "intent",
+    "trajectory",
+    "clauses",
+    "invariants",
+    "trace",
+    "onDivergence",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "const": 1
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        }
+      }
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+        }
+      }
+    },
+    "clauses": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/clause"
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trace": {
+      "enum": [
+        "full",
+        "minimal"
+      ]
+    },
+    "onDivergence": {
+      "enum": [
+        "continue",
+        "stop"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "inputs",
+          "outputs",
+          "state",
+          "errors",
+          "causal_links",
+          "timing",
+          "logs",
+          "attachments"
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "clause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "expression",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "given",
+            "when",
+            "then"
+          ]
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "column"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
