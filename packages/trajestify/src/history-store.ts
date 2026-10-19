@@ -56,6 +56,7 @@ export class JsonlTrajectoryHistoryStore implements TrajectoryHistoryStore {
       .filter(item => options.trajectoryId === undefined || item.trajectory.id === options.trajectoryId)
       .filter(item => options.before === undefined || Date.parse(item.finishedAt) <= Date.parse(options.before))
       .sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
+    if (options.limit === 0) return [];
     return options.limit === undefined ? filtered : filtered.slice(-options.limit);
   }
 }
