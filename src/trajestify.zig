@@ -171,9 +171,33 @@ pub fn parseIR(allocator: std.mem.Allocator, json_bytes: []const u8) !Trajectory
 }
 
 fn cloneIR(allocator: std.mem.Allocator, ir: TrajectoryIR) !TrajectoryIR {
-    const serialized = try std.json.Stringify.valueAlloc(allocator, ir, .{});
-    defer allocator.free(serialized);
-    return try std.json.parseFromSliceLeaky(TrajectoryIR, allocator, serialized, .{ .allocate = .alloc_always, .ignore_unknown_fields = false });
+    const clauses = try allocator.alloc(Clause, ir.clauses.len);
+    for (ir.clauses, 0..) |clause, i| {
+        clauses[i] = .{
+            .id = try allocator.dupe(u8, clause.id),
+            .kind = clause.kind,
+            .expression = try allocator.dupe(u8, clause.expression),
+            .source = .{
+                .file = if (clause.source.file) |file| try allocator.dupe(u8, file) else null,
+                .line = clause.source.line,
+                .column = clause.source.column,
+            },
+        };
+    }
+    const invariants = try allocator.alloc([]const u8, ir.invariants.len);
+    for (ir.invariants, 0..) |expression, i| invariants[i] = try allocator.dupe(u8, expression);
+    return .{
+        .schemaVersion = ir.schemaVersion,
+        .name = try allocator.dupe(u8, ir.name),
+        .intentId = try allocator.dupe(u8, ir.intentId),
+        .actor = if (ir.actor) |actor| try allocator.dupe(u8, actor) else null,
+        .trajectoryId = try allocator.dupe(u8, ir.trajectoryId),
+        .clauses = clauses,
+        .invariants = invariants,
+        .trace = ir.trace,
+        .onDivergence = ir.onDivergence,
+        .evidence = try allocator.dupe(EvidenceKind, ir.evidence),
+    };
 }
 
 pub fn parseArtifact(allocator: std.mem.Allocator, json_bytes: []const u8) !TrajectoryArtifact {
