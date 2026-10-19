@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, rm } from "node:fs/promises";
 
 const primitiveValues = {
   string: "2",
@@ -40,6 +40,28 @@ const valuePartitions = {
   null: [null],
   undefined: [undefined],
 };
+
+function describeValue(value) {
+  if (typeof value === "number") {
+    if (Number.isNaN(value)) return "NaN";
+    if (Object.is(value, -0)) return "-0";
+    if (value === Infinity) return "Infinity";
+    if (value === -Infinity) return "-Infinity";
+  }
+  if (typeof value === "bigint") return `${value}n`;
+  if (typeof value === "symbol") return value.toString();
+  if (value === undefined) return "undefined";
+  return JSON.stringify(value) ?? String(value);
+}
+
+function divergenceRecord(entry, left, right, context, error) {
+  return {
+    rule: { left: entry.left, operator: entry.operator, right: entry.right },
+    prediction: { result: entry.result, outcome: entry.outcome },
+    input: { left: describeValue(left), right: describeValue(right), context },
+    divergence: error instanceof Error ? error.message : String(error),
+  };
+}
 
 function assertValueOutcome(entry, left, right, context) {
   const operation = operations[entry.operator];
@@ -105,9 +127,12 @@ test("Zig-generated 735-case matrix agrees with JavaScript runtime", async (t) =
   }
 });
 
-test("classifier remains consistent across concrete value partitions", async (t) => {
+test("classifier remains consistent across concrete value partitions", async () => {
   const matrix = JSON.parse(await readFile("tests/generated-operator-matrix.json", "utf8"));
+  const reportPath = "tests/semantic-divergences.json";
+  await rm(reportPath, { force: true });
   let checked = 0;
+  const divergences = [];
 
   for (const entry of matrix) {
     const leftValues = valuePartitions[entry.left];
@@ -117,7 +142,11 @@ test("classifier remains consistent across concrete value partitions", async (t)
         const left = leftValues[leftIndex];
         const right = rightValues[rightIndex];
         const context = `${entry.left}[${leftIndex}] ${entry.operator} ${entry.right}[${rightIndex}] (modeled=${entry.result}/${entry.outcome})`;
-        assertValueOutcome(entry, left, right, context);
+        try {
+          assertValueOutcome(entry, left, right, context);
+        } catch (error) {
+          divergences.push(divergenceRecord(entry, left, right, context, error));
+        }
         checked += 1;
       }
     }
@@ -125,4 +154,17 @@ test("classifier remains consistent across concrete value partitions", async (t)
 
   assert.ok(checked >= matrix.length, `expected partition checks across all ${matrix.length} classifier rules; checked ${checked}`);
   console.log(`Validated ${checked} concrete operand combinations across ${matrix.length} classifier rules.`);
+
+  if (divergences.length > 0) {
+    const report = {
+      schemaVersion: 1,
+      generatedBy: "tests/operator-reference.test.mjs",
+      checkedCombinations: checked,
+      classifierRules: matrix.length,
+      divergenceCount: divergences.length,
+      divergences,
+    };
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\\n`);
+    assert.fail(`${divergences.length} semantic divergences found; reproducible report written to ${reportPath}\\n${JSON.stringify(divergences.slice(0, 10), null, 2)}`);
+  }
 });
