@@ -245,6 +245,16 @@ interface RuntimeAdapter {
 
 O runner não deve presumir que `Stock` é uma classe. É um nome semântico resolvido por adapter para um contexto Zig, objeto TypeScript, endpoint HTTP, browser fixture ou outro runtime.
 
+## Hipóteses de causa raiz com evidências
+
+O runtime TypeScript exporta `inferRootCauseHypotheses(artifact)`, que produz hipóteses explicáveis vinculadas a eventos reais do artefato:
+
+- `assertion_mismatch`: a observação não satisfez a expectativa registrada.
+- `execution_error`: uma etapa lançou uma exceção; a mensagem registrada é usada como justificativa.
+- `upstream_state_candidate`: pode ser emitida quando o predecessor imediato no caminho causal também não passou.
+
+Cada hipótese contém regra, evento/cláusula, justificativa, confiança e `evidenceEventIds`. A confiança é heurística: `medium` para divergência/erro diretamente observado e `low` para suspeita upstream. Uma trajetória aprovada não gera hipóteses. A função não consulta histórico nem prova causalidade; histórico e evidências externas só devem ser adicionados quando realmente disponíveis e referenciados.
+
 ## Diagnóstico causal derivado
 
 O runtime acrescenta `diagnostics` ao artifact. `causalPath` é a cadeia de eventos que liga a primeira divergência às referências `causedBy`, ordenada da origem observada até a divergência. Cada nó contém `eventId` e `clauseId`, permitindo que o Agent navegue os eventos sem reconstruir os vínculos manualmente.
