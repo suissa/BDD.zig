@@ -41,6 +41,28 @@ const valuePartitions = {
   undefined: [undefined],
 };
 
+const operatorSymbols = {
+  add: "+", subtract: "-", multiply: "*", divide: "/", remainder: "%",
+  exponent: "**", strict_equal: "===", loose_equal: "==",
+  less_than: "<", less_equal: "<=", greater_than: ">", greater_equal: ">=",
+  logical_and: "&&", logical_or: "||", bitwise_and: "&",
+};
+
+function valueExpression(value) {
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (Number.isNaN(value)) return "NaN";
+    if (Object.is(value, -0)) return "-0";
+    if (value === Infinity) return "Infinity";
+    if (value === -Infinity) return "-Infinity";
+    return String(value);
+  }
+  if (typeof value === "bigint") return `${value}n`;
+  if (typeof value === "symbol") return `Symbol(${JSON.stringify(value.description ?? "")})`;
+  if (value === undefined) return "undefined";
+  return String(value);
+}
+
 function describeValue(value) {
   if (typeof value === "number") {
     if (Number.isNaN(value)) return "NaN";
@@ -54,11 +76,28 @@ function describeValue(value) {
   return JSON.stringify(value) ?? String(value);
 }
 
-function divergenceRecord(entry, left, right, context, error) {
+function divergenceRecord(entry, left, right, context, error, leftIndex, rightIndex) {
+  const leftSource = valueExpression(left);
+  const rightSource = valueExpression(right);
+  const operator = operatorSymbols[entry.operator];
   return {
+    caseId: `${entry.left}.${entry.operator}.${entry.right}.L${leftIndex}.R${rightIndex}`,
+    ruleId: `${entry.left}:${entry.operator}:${entry.right}`,
     rule: { left: entry.left, operator: entry.operator, right: entry.right },
     prediction: { result: entry.result, outcome: entry.outcome },
-    input: { left: describeValue(left), right: describeValue(right), context },
+    input: {
+      left: describeValue(left),
+      right: describeValue(right),
+      leftExpression: leftSource,
+      rightExpression: rightSource,
+      leftPartitionIndex: leftIndex,
+      rightPartitionIndex: rightIndex,
+      context,
+    },
+    reproduction: {
+      expression: `(${leftSource}) ${operator} (${rightSource})`,
+      snippet: `const left = ${leftSource};\\nconst right = ${rightSource};\\ntry { console.log((left) ${operator} (right)); } catch (error) { console.log(error.name + ": " + error.message); }`,
+    },
     divergence: error instanceof Error ? error.message : String(error),
   };
 }
@@ -145,7 +184,7 @@ test("classifier remains consistent across concrete value partitions", async () 
         try {
           assertValueOutcome(entry, left, right, context);
         } catch (error) {
-          divergences.push(divergenceRecord(entry, left, right, context, error));
+          divergences.push(divergenceRecord(entry, left, right, context, error, leftIndex, rightIndex));
         }
         checked += 1;
       }
