@@ -363,3 +363,16 @@ const artifact = await runTrajectory(intent, context);
 Os IDs `clause-1`, `clause-2` são atribuídos pela ordem no arquivo; adapters de produção devem preferir IDs explícitos e estáveis quando essa capacidade for adicionada à gramática. Até lá, também é possível registrar um binding usando o texto exato da expressão. Se qualquer cláusula ou invariante não tiver binding, `bindTrajectory` falha imediatamente com `TrajestifyBindingError`: texto da DSL nunca é executado por `eval`.
 
 Invariantes são convertidos em etapas de runtime do tipo `invariant` e divergências de invariantes geram evidência, sem substituir a primeira divergência anterior. Um teste de integração lê `examples/buy-product.traj`, compila o IR e executa bindings com divergência de estoque (esperado 8, observado 9), verificando que a etapa Delivery continua registrada. O adapter ainda é fornecido manualmente pelo código TypeScript; inferência automática de ações a partir de linguagem natural não faz parte deste contrato.
+
+
+## Zig semantic adapter
+
+The Zig module `src/trajestify.zig` is the first cross-language consumer of the normalized semantic contract. It defines typed `TrajectoryIR` and `TrajectoryArtifact` models, parses IR JSON with strict unknown-field handling, and validates runtime invariants that JSON Schema alone cannot express:
+
+- schema version and stable identifiers;
+- unique clause IDs and non-empty expressions;
+- required Given/When/Then phases and source positions;
+- sequential artifact event numbering;
+- summary counts and consistency between intent and trajectory status.
+
+The adapter is deliberately a validator and data-contract boundary, not a second DSL executor: expressions remain data and Zig does not evaluate arbitrary DSL strings. It targets the repository's currently pinned Zig 0.15.2 toolchain. The native Zig test suite imports this module so contract regressions are checked in CI.
