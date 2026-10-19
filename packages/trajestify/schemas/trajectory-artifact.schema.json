@@ -12,6 +12,7 @@
     "startedAt",
     "finishedAt",
     "steps",
+    "diagnostics",
     "firstDivergence",
     "summary"
   ],
@@ -121,6 +122,70 @@
         "skipped": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootCause",
+        "causalPath"
+      ],
+      "properties": {
+        "rootCause": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "eventId",
+                "clauseId",
+                "confidence",
+                "basis"
+              ],
+              "properties": {
+                "eventId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clauseId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "confidence": {
+                  "const": "candidate"
+                },
+                "basis": {
+                  "const": "first_divergence"
+                }
+              }
+            }
+          ]
+        },
+        "causalPath": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eventId",
+              "clauseId"
+            ],
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clauseId": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     }
