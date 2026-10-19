@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { parseTrajestify, TrajestifyBindingError } from "../dist/parser.js";
-import { bindTrajectory, compileToIR } from "../dist/compiler.js";
+import { parseTrajestify } from "../dist/parser.js";
+import { bindTrajectory, compileToIR, TrajestifyBindingError } from "../dist/compiler.js";
 import { expectValue, runTrajectory } from "../dist/index.js";
 
 test("compiles the .traj document into IR and executes registered step bindings", async () => {
