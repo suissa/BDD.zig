@@ -245,6 +245,35 @@ interface RuntimeAdapter {
 
 O runner não deve presumir que `Stock` é uma classe. É um nome semântico resolvido por adapter para um contexto Zig, objeto TypeScript, endpoint HTTP, browser fixture ou outro runtime.
 
+## Diagnóstico causal derivado
+
+O runtime acrescenta `diagnostics` ao artifact. `causalPath` é a cadeia de eventos que liga a primeira divergência às referências `causedBy`, ordenada da origem observada até a divergência. Cada nó contém `eventId` e `clauseId`, permitindo que o Agent navegue os eventos sem reconstruir os vínculos manualmente.
+
+`rootCause` é deliberadamente uma **candidata**, não uma afirmação causal definitiva: aponta para a primeira divergência observada (`basis: "first_divergence"`). Uma divergência pode ser consequência de um defeito anterior que não foi capturado. A análise posterior pode comparar o caminho com invariantes, evidências e execuções históricas para determinar a causa provável.
+
+Exemplo:
+
+```json
+{
+  "diagnostics": {
+    "rootCause": {
+      "eventId": "run-1:evt:4",
+      "clauseId": "stock-decreased",
+      "confidence": "candidate",
+      "basis": "first_divergence"
+    },
+    "causalPath": [
+      { "eventId": "run-1:evt:1", "clauseId": "customer-active" },
+      { "eventId": "run-1:evt:2", "clauseId": "purchase-requested" },
+      { "eventId": "run-1:evt:3", "clauseId": "financial-recorded" },
+      { "eventId": "run-1:evt:4", "clauseId": "stock-decreased" }
+    ]
+  }
+}
+```
+
+O validador Zig confere se o candidato corresponde à primeira divergência, se o caminho termina nesse evento e se cada par consecutivo está ligado por `causedBy`. Quando não há divergência, o contrato exige `rootCause: null` e `causalPath: []`.
+
 ## 7. Determinação e divergência
 
 - `passed`: a cláusula foi executada e a condição observável foi satisfeita.
