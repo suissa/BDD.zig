@@ -36,6 +36,7 @@ jobs:
       - name: Generate and validate diagnostic artifact
         working-directory: packages/trajestify
         run: |
+          mkdir -p ../../artifacts
           node --input-type=module <<'NODE'
           import { defineIntent, Given, When, Then, And, runTrajectory } from './dist/index.js';
           import { writeFile } from 'node:fs/promises';
