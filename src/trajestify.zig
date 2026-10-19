@@ -275,7 +275,7 @@ test "parses a TypeScript-compatible trajectory artifact JSON" {
     var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena_state.deinit();
     const json =
-        \\\\{"schemaVersion":1,"runId":"run-1","intent":{"id":"buy_product","title":"Buy product","status":"passed"},"trajectory":{"id":"purchase_product","status":"passed"},"startedAt":"2026-10-19T00:00:00.000Z","finishedAt":"2026-10-19T00:00:01.000Z","steps":[],"firstDivergence":null,"summary":{"passed":0,"failed":0,"diverged":0,"blocked":0,"skipped":0}}
+        \\\\{"schemaVersion":1,"runId":"run-1","intent":{"id":"buy_product","title":"Buy product","status":"passed"},"trajectory":{"id":"purchase_product","status":"passed"},"startedAt":"2026-10-19T00:00:00.000Z","finishedAt":"2026-10-19T00:00:01.000Z","steps":[],"firstDivergence":null,"diagnostics":{"rootCause":null,"causalPath":[]},"summary":{"passed":0,"failed":0,"diverged":0,"blocked":0,"skipped":0}}
     ;
     const artifact = try parseArtifact(arena_state.allocator(), json);
     try std.testing.expectEqualStrings("run-1", artifact.runId);
@@ -302,6 +302,7 @@ test "rejects malformed artifact sequence and mismatched summary" {
             .causedBy = &.{},
         }},
         .firstDivergence = null,
+        .diagnostics = .{ .rootCause = null, .causalPath = &.{} },
         .summary = .{ .passed = 1, .failed = 0, .diverged = 0, .blocked = 0, .skipped = 0 },
     };
     try std.testing.expectError(error.InvalidArtifactSequence, validateArtifact(artifact));
@@ -333,6 +334,10 @@ test "rejects artifact whose first divergence points to the wrong event" {
             .category = .assertion_mismatch,
             .message = "Stock expected 8 but got 9",
         },
+        .diagnostics = .{
+            .rootCause = .{ .eventId = "run-1:evt:1", .clauseId = "stock", .confidence = .candidate, .basis = .first_divergence },
+            .causalPath = &.{.{ .eventId = "run-1:evt:1", .clauseId = "stock" }},
+        },
         .summary = .{ .passed = 0, .failed = 0, .diverged = 1, .blocked = 0, .skipped = 0 },
     };
     try std.testing.expectError(error.InvalidFirstDivergence, validateArtifact(artifact));
@@ -358,6 +363,7 @@ test "requires first divergence whenever an artifact contains failed or diverged
             .causedBy = &.{},
         }},
         .firstDivergence = null,
+        .diagnostics = .{ .rootCause = null, .causalPath = &.{} },
         .summary = .{ .passed = 0, .failed = 0, .diverged = 1, .blocked = 0, .skipped = 0 },
     };
     try std.testing.expectError(error.MissingFirstDivergence, validateArtifact(artifact));
