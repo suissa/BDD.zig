@@ -16,13 +16,13 @@ test("compiles the .traj document into IR and executes registered step bindings"
 
   const context = { stock: 10, delivery: false, sale: false, financial: false };
   const intent = bindTrajectory(ir, {
-    "clause-1": () => true,
-    "clause-2": () => true,
-    "clause-3": () => { context.sale = true; return true; },
-    "clause-4": () => true,
-    "clause-5": () => { context.financial = true; return true; },
-    "clause-6": () => expectValue(8, (context.stock = 9)),
-    "clause-7": () => { context.delivery = true; return true; },
+    "customer-active": () => true,
+    "stock-initial": () => true,
+    "purchase-requested": () => { context.sale = true; return true; },
+    "order-created": () => true,
+    "financial-recorded": () => { context.financial = true; return true; },
+    "stock-decreased": () => expectValue(8, (context.stock = 9)),
+    "delivery-scheduled": () => { context.delivery = true; return true; },
     "invariant-1": () => expectValue(8, context.stock),
   });
   const artifact = await runTrajectory(intent, context, { runId: "dsl-integration-stock-divergence" });
@@ -31,7 +31,7 @@ test("compiles the .traj document into IR and executes registered step bindings"
   assert.equal(artifact.firstDivergence?.expected, 8);
   assert.equal(artifact.firstDivergence?.observed, 9);
   assert.equal(artifact.steps.length, 8);
-  assert.equal(artifact.steps[6]?.clauseId, "clause-7");
+  assert.equal(artifact.steps[6]?.clauseId, "delivery-scheduled");
   assert.equal(context.delivery, true);
 });
 
