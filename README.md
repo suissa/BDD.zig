@@ -71,7 +71,7 @@ not yet been executed in a local Node/Lightpanda environment.
 Trajestify is the language-neutral trajectory-testing DSL being developed in this repository. Unlike a PASS/FAIL-only test, its runner emits a structured execution trajectory and first-divergence diagnostic for repair agents.
 
 - [Trajestify specification, reserved keywords, schemas, TypeScript API and artifact contract](docs/Trajestify/README.md)
-- [Canonical buy-product DSL example](examples/buy-product.trajest)
+- [Canonical buy-product DSL example](examples/buy-product.traj)
 - TypeScript prototype: `packages/trajestify/`
 - CI: `.github/workflows/trajestify.yml`
 
