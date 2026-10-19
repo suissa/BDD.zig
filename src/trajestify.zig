@@ -46,7 +46,13 @@ pub const ArtifactStep = struct {
     finishedAt: []const u8,
     durationMs: u64,
     causedBy: []const []const u8,
+    expected: ?std.json.Value = null,
+    observed: ?std.json.Value = null,
+    source: ?SourceLocation = null,
+    error: ?ArtifactError = null,
 };
+
+pub const ArtifactError = struct { name: []const u8, message: []const u8 };
 
 pub const ArtifactSummary = struct {
     passed: u32,
@@ -61,6 +67,8 @@ pub const FirstDivergence = struct {
     sequence: u32,
     category: DivergenceCategory,
     message: []const u8,
+    expected: ?std.json.Value = null,
+    observed: ?std.json.Value = null,
 };
 
 pub const TrajectoryArtifact = struct {
