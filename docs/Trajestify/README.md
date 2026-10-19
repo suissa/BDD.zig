@@ -387,4 +387,4 @@ zig run src/trajestify_validate.zig -- ir artifacts/trajestify-ir.json
 zig run src/trajestify_validate.zig -- artifact artifacts/trajestify-stock-divergence.json
 ```
 
-The Trajestify CI compiles the canonical `.traj` example into IR, creates a real runtime divergence artifact, and passes both files through the Zig validator. This checks the producer/consumer boundary using generated data rather than only hand-authored fixtures.
+The Trajestify CI compiles the canonical `.traj` example into IR, creates a real runtime divergence artifact, and passes both files through the Zig validator. This checks the producer/consumer boundary using generated data rather than only hand-authored fixtures. The CLI exits non-zero for malformed JSON or violated semantic invariants, so the same checks can gate local development and CI.
