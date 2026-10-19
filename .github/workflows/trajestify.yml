@@ -38,18 +38,18 @@ jobs:
         run: |
           mkdir -p ../../artifacts
           node --input-type=module <<'NODE'
-          import { defineIntent, Given, When, Then, And, runTrajectory } from './dist/index.js';
+          import { defineIntent, Given, When, Then, And, expectValue, runTrajectory } from './dist/index.js';
           import { writeFile } from 'node:fs/promises';
           const context = { stock: 10, delivery: false };
           const intent = defineIntent('buy_product', 'Buy product', [
             Given('customer', 'Customer active', () => true),
             When('sales', 'Sale persisted', () => true),
             And('when', 'financial', 'Financial transaction recorded', () => true),
-            Then('stock', 'Stock equals 8', c => { c.stock = 9; return c.stock === 8; }),
+            Then('stock', 'Stock equals 8', c => { c.stock = 9; return expectValue(8, c.stock); }),
             And('then', 'delivery', 'Delivery stage captured', c => { c.delivery = true; return true; }),
           ]);
           const artifact = await runTrajectory(intent, context, { runId: 'ci-stock-divergence' });
-          if (artifact.firstDivergence?.sequence !== 4 || artifact.steps.length !== 5 || artifact.steps[4]?.clauseId !== 'delivery') {
+          if (artifact.firstDivergence?.sequence !== 4 || artifact.firstDivergence.expected !== 8 || artifact.firstDivergence.observed !== 9 || artifact.steps.length !== 5 || artifact.steps[4]?.clauseId !== 'delivery') {
             throw new Error('Expected stock divergence with complete five-step trajectory');
           }
           await writeFile('../../artifacts/trajestify-stock-divergence.json', JSON.stringify(artifact, null, 2));
