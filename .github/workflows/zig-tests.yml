@@ -24,3 +24,10 @@ jobs:
         run: zig run src/export_semantic_cases.zig
       - name: Run concrete value partition tests
         run: node --test tests/concrete-semantic-reference.test.mjs
+      - name: Upload semantic divergence report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-divergence-report
+          path: tests/semantic-divergences.json
+          if-no-files-found: ignore
