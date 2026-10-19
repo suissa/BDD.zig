@@ -164,7 +164,8 @@ export async function runTrajectory<C>(
         eventId,
         sequence: event.sequence,
         category: status === "diverged" ? "assertion_mismatch" : "execution_error",
-        observed,
+        ...(expected !== undefined ? { expected } : {}),
+        ...(observed !== undefined ? { observed } : {}),
         message: status === "diverged" ? `Expectation diverged: ${clause.text}` : errorEvidence?.message ?? "Step execution failed",
       };
       if (definition.onDivergence === "stop") stopped = true;
