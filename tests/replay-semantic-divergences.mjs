@@ -49,10 +49,12 @@ assert.equal(report.schemaVersion, 1, "unsupported divergence report schema");
 assert.ok(Array.isArray(report.divergences), "report must contain divergences");
 
 for (const entry of report.divergences) {
-  const left = valuePartitions[entry.rule.left]?.[entry.input.leftPartitionIndex];
-  const right = valuePartitions[entry.rule.right]?.[entry.input.rightPartitionIndex];
-  assert.notEqual(left, undefined, `${entry.caseId}: left partition cannot be resolved`);
-  assert.notEqual(right, undefined, `${entry.caseId}: right partition cannot be resolved`);
+  const leftValues = valuePartitions[entry.rule.left];
+  const rightValues = valuePartitions[entry.rule.right];
+  assert.ok(leftValues && entry.input.leftPartitionIndex < leftValues.length, `${entry.caseId}: left partition cannot be resolved`);
+  assert.ok(rightValues && entry.input.rightPartitionIndex < rightValues.length, `${entry.caseId}: right partition cannot be resolved`);
+  const left = leftValues[entry.input.leftPartitionIndex];
+  const right = rightValues[entry.input.rightPartitionIndex];
 
   let observed;
   try {
