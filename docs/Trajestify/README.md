@@ -84,7 +84,7 @@ Palavras-chave são sensíveis a maiúsculas/minúsculas. A forma canônica nest
 | `Evidence:` | Não | Categorias de evidência solicitadas. |
 | `#` | Não | Inicia comentário até o fim da linha. |
 
-### Palavras contextuais / valores reservados
+### IDs estáveis de cláusula\n\n`Given`, `When`, `Then` e `And` aceitam um ID opcional entre colchetes antes dos dois-pontos, por exemplo `When [purchase-requested]: Customer buys Product quantity=2`. O ID deve começar com letra e conter apenas letras, números, `_` ou `-`; deve ser único no documento. O compilador preserva esse ID no IR e o runtime usa-o para resolver bindings. Se omitido, o parser gera `clause-1`, `clause-2` etc.; esses IDs posicionais são convenientes para protótipos, mas podem mudar quando passos forem inseridos. `And [id]: ...` mantém o tipo semântico da cláusula anterior.\n\n### Palavras contextuais / valores reservados
 
 - Tipos de cláusula: `Given`, `When`, `Then`, `And`.
 - Modos de trace: `full`, `minimal`.
