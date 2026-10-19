@@ -263,13 +263,13 @@ O runner não deve presumir que `Stock` é uma classe. É um nome semântico res
 O objetivo é uma API familiar a CucumberJS sem prender o núcleo à sintaxe Cucumber:
 
 ```ts
-import { defineIntent, Given, When, Then, And, runTrajectory } from "@trajestify/core";
+import { defineIntent, Given, When, Then, And, expectValue, runTrajectory } from "@trajestify/core";
 
 const purchase = defineIntent("buy_product", "Buy product", [
   Given("customer", "Customer is active", async ctx => ctx.customer.active),
   When("sales", "Persist sale", async ctx => ctx.buy(2)),
   And("when", "financial", "Record transaction", async ctx => ctx.recordFinancial()),
-  Then("stock", "Stock is 8", async ctx => ctx.stock === 8, /* source location optional */),
+  Then("stock", "Stock is 8", async ctx => expectValue(8, ctx.stock)),
   And("then", "delivery", "Schedule delivery", async ctx => ctx.scheduleDelivery()),
 ]);
 
@@ -333,4 +333,4 @@ Machine-readable schemas:
 - [Normalized DSL document AST](../../packages/trajestify/schemas/trajestify-document.schema.json)
 - [Trajectory Artifact JSON](../../packages/trajestify/schemas/trajectory-artifact.schema.json)
 
-The initial TypeScript API uses `Given(id, text, execute)`, `When(id, text, execute)`, and `Then(id, text, execute)`. `And(kind, id, text, execute)` explicitly receives the inherited semantic kind in v0.1. The example above illustrates the intended adapter integration; it is not yet a published npm package.
+The initial TypeScript API uses `Given(id, text, execute)`, `When(id, text, execute)`, and `Then(id, text, execute)`. `expectValue(expected, observed)` preserves both values in a divergence artifact rather than recording only `false`. `And(kind, id, text, execute)` explicitly receives the inherited semantic kind in v0.1. The example above illustrates the intended adapter integration; it is not yet a published npm package.
