@@ -19,7 +19,7 @@
         "additionalProperties": false,
         "required": ["id", "kind", "expression", "source"],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
+          "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
           "kind": { "enum": ["given", "when", "then"] },
           "expression": { "type": "string", "minLength": 1 },
           "source": {
