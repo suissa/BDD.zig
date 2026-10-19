@@ -199,6 +199,17 @@ test "validates IR and rejects duplicate clause IDs" {
     try std.testing.expectError(error.DuplicateClauseId, parseIR(allocator, duplicate));
 }
 
+test "parses a TypeScript-compatible trajectory artifact JSON" {
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+    const json =
+        \\\\{"schemaVersion":1,"runId":"run-1","intent":{"id":"buy_product","title":"Buy product","status":"passed"},"trajectory":{"id":"purchase_product","status":"passed"},"startedAt":"2026-10-19T00:00:00.000Z","finishedAt":"2026-10-19T00:00:01.000Z","steps":[],"firstDivergence":null,"summary":{"passed":0,"failed":0,"diverged":0,"blocked":0,"skipped":0}}
+    ;
+    const artifact = try parseArtifact(arena_state.allocator(), json);
+    try std.testing.expectEqualStrings("run-1", artifact.runId);
+    try std.testing.expectEqual(ArtifactIntentStatus.passed, artifact.intent.status);
+}
+
 test "rejects malformed artifact sequence and mismatched summary" {
     const artifact = TrajectoryArtifact{
         .schemaVersion = 1,
