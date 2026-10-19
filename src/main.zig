@@ -31,7 +31,7 @@ pub fn main(init: std.process.Init) !void {
     try stdout_writer.flush(); // Don't forget to flush!
 }
 
-test "simple test" {
+test "Trajestify Zig adapter tests are included" {\n    _ = @import("trajestify.zig");\n}\n\ntest "simple test" {
     const gpa = std.testing.allocator;
     var list: std.ArrayList(i32) = .empty;
     defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
