@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { defineIntent, Given, When, Then, And, expectValue, runTrajectory } from "../dist/index.js";
+import { defineIntent, Given, When, Then, And, expectValue, runTrajectory, inferRootCauseHypotheses } from "../dist/index.js";
 
 test("records a complete successful trajectory", async () => {
   const context = { stock: 10, sale: false, financial: false, delivery: false };
@@ -69,4 +69,31 @@ test("returns empty causal diagnostics when trajectory has no divergence", async
   ]);
   const artifact = await runTrajectory(intent, {}, { runId: "causal-clean" });
   assert.deepEqual(artifact.diagnostics, { rootCause: null, causalPath: [] });
+});
+
+
+test("derives evidence-linked hypotheses without claiming proven causality", async () => {
+  const intent = defineIntent("buy_product", "Buy product", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    Then("stock", "Stock is 8", () => expectValue(8, 9)),
+  ]);
+  const artifact = await runTrajectory(intent, {}, { runId: "hypothesis-evidence" });
+  const hypotheses = inferRootCauseHypotheses(artifact);
+  assert.equal(hypotheses.length, 1);
+  assert.equal(hypotheses[0].rule, "assertion_mismatch");
+  assert.equal(hypotheses[0].eventId, artifact.firstDivergence?.eventId);
+  assert.deepEqual(hypotheses[0].evidenceEventIds, [artifact.firstDivergence?.eventId]);
+  assert.equal(hypotheses[0].confidence, "medium");
+  assert.match(hypotheses[0].rationale, /observed value/i);
+});
+
+test("does not infer root cause hypotheses for a passing trajectory", async () => {
+  const intent = defineIntent("healthy", "Healthy", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    Then("stock", "Stock is 8", () => true),
+  ]);
+  const artifact = await runTrajectory(intent, {}, { runId: "hypothesis-clean" });
+  assert.deepEqual(inferRootCauseHypotheses(artifact), []);
 });
