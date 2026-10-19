@@ -369,7 +369,7 @@ export function rankRootCauseHypotheses(
         (candidate.status === "diverged" || candidate.status === "failed" || candidate.status === "error")
       )).length;
       const rate = eligibleHistory.length === 0 ? 0 : matches / eligibleHistory.length;
-      recurrence = Math.min(25, matches * 8) + Math.round(rate * 10);
+      recurrence = Math.min(20, matches * 6) + Math.round(rate * 5);
     }
     const evidenceCoverage = hypothesis.evidenceEventIds.length === 0
       ? 0
