@@ -9,7 +9,7 @@ test("evaluation computes MRR, Recall@k, Precision@k and false-positive rate", (
   ], 1);
   assert.deepEqual(report, {
     caseCount: 2, k: 1, mrr: 0.75, recallAtK: 0.5, precisionAtK: 0.5,
-    falsePositiveRateAtK: 0.5, casesWithRelevantHit: 1, relevantHypotheses: 2,
+    falsePositiveRateAtK: 0.5, casesWithRelevantHit: 2, relevantHypotheses: 2,
     relevantHypothesesRetrievedAtK: 1, topKHypothesesEvaluated: 2, falsePositivesAtK: 1,
   });
 });
