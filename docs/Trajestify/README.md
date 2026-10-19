@@ -20,7 +20,7 @@ Trajestify nasce dentro de `BDD.zig`, mas seu contrato semântico não pertence 
 ## 2. Fluxo arquitetural
 
 ```text
-.trajest source
+.traj source
    -> lexer/parser
    -> Trajestify AST
    -> semantic validation
@@ -284,7 +284,7 @@ A API é uma direção proposta; nomes e assinatura podem evoluir antes de publi
 packages/trajestify/
   src/
     ast.ts             # AST e schemas TypeScript
-    parser.ts          # parser .trajest
+    parser.ts          # parser .traj
     expression.ts      # lexer/parser/evaluator seguro
     runner.ts          # runtime de trajetória
     artifact.ts        # schema e serialização do artifact
@@ -303,8 +303,8 @@ Pacote inicial sugerido: `@trajestify/core`. A publicação npm não está confi
 Comandos desejados (não implementados nesta versão):
 
 ```sh
-trajestify validate examples/buy-product.trajest
-trajestify run examples/buy-product.trajest --adapter ts
+trajestify validate examples/buy-product.traj
+trajestify run examples/buy-product.traj --adapter ts
 trajestify replay artifacts/trajectory.json
 ```
 
@@ -319,7 +319,7 @@ O DSL inicial deste diretório não substitui Gherkin nem a implementação exis
 ## 12. Fora de escopo nesta versão
 
 - Parser completo de expressões e schema JSON Schema publicado.
-- Integração automática entre o arquivo `.trajest` e o runner Zig.
+- Integração automática entre o arquivo `.traj` e o runner Zig.
 - Adapter HTTP/browser/DB real.
 - Execução paralela distribuída e causalidade entre processos.
 - Assinatura criptográfica dos artefatos.
