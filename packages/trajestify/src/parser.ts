@@ -27,6 +27,7 @@ export class TrajestifyParseError extends Error {
   }
 }
 const evidenceKinds = new Set<EvidenceKind>(["inputs", "outputs", "state", "errors", "causal_links", "timing", "logs", "attachments"]);
+const stepKeyword = /^(Given|When|Then|And)(?:\s+\[([A-Za-z][A-Za-z0-9_-]*)\])?$/;
 
 export function parseTrajestify(source: string, file?: string): TrajestifyDocument {
   let name: string | undefined;
@@ -41,6 +42,7 @@ export function parseTrajestify(source: string, file?: string): TrajestifyDocume
   const invariants: string[] = [];
   let previousClause: DslClauseKind | undefined;
   const seen = new Set<string>();
+  const clauseIds = new Set<string>();
 
   const lines = source.split(/\r?\n/);
   for (let index = 0; index < lines.length; index++) {
@@ -50,12 +52,27 @@ export function parseTrajestify(source: string, file?: string): TrajestifyDocume
     const location = { file, line: index + 1, column: raw.indexOf(line) + 1 };
     const colon = line.indexOf(":");
     if (colon < 0) throw new TrajestifyParseError("Expected a reserved keyword followed by ':'", location);
-    const keyword = line.slice(0, colon).trim();
+    const rawKeyword = line.slice(0, colon).trim();
     const value = line.slice(colon + 1).trim();
-    if (!value) throw new TrajestifyParseError(`${keyword} value cannot be empty`, location);
+    if (!value) throw new TrajestifyParseError(`${rawKeyword} value cannot be empty`, location);
+    const step = stepKeyword.exec(rawKeyword);
+    const keyword = step ? step[1]! : rawKeyword;
     if (["Trajestify", "Version", "Intent", "Actor", "Trajectory"].includes(keyword)) {
       if (seen.has(keyword)) throw new TrajestifyParseError(`Duplicate ${keyword} declaration`, location);
       seen.add(keyword);
+    }
+    if (step) {
+      const kind = keyword.toLowerCase() as DslClauseKind;
+      if (keyword === "And" && !previousClause) {
+        throw new TrajestifyParseError("And must follow Given, When, Then or And", location);
+      }
+      const id = step[2] ?? `clause-${clauses.length + 1}`;
+      if (clauseIds.has(id)) throw new TrajestifyParseError(`Duplicate clause id: ${id}`, location);
+      clauseIds.add(id);
+      const clauseKind = keyword === "And" ? previousClause! : kind;
+      clauses.push({ id, kind: clauseKind, expression: value, source: location });
+      previousClause = clauseKind;
+      continue;
     }
     switch (keyword) {
       case "Trajestify": name = value; break;
@@ -69,19 +86,6 @@ export function parseTrajestify(source: string, file?: string): TrajestifyDocume
       case "Trajectory":
         if (!/^[A-Za-z][A-Za-z0-9_.-]*$/.test(value)) throw new TrajestifyParseError("Trajectory must be an identifier", location);
         trajectory = value; break;
-      case "Given":
-      case "When":
-      case "Then": {
-        const kind = keyword.toLowerCase() as DslClauseKind;
-        const clause = { id: `clause-${clauses.length + 1}`, kind, expression: value, source: location };
-        clauses.push(clause);
-        previousClause = kind;
-        break;
-      }
-      case "And":
-        if (!previousClause) throw new TrajestifyParseError("And must follow Given, When, Then or And", location);
-        clauses.push({ id: `clause-${clauses.length + 1}`, kind: previousClause, expression: value, source: location });
-        break;
       case "Invariant": invariants.push(value); break;
       case "Trace":
         if (value !== "full" && value !== "minimal") throw new TrajestifyParseError("Trace must be full or minimal", location);
