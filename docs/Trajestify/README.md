@@ -255,6 +255,32 @@ O runtime TypeScript exporta `inferRootCauseHypotheses(artifact)`, que produz hi
 
 Cada hipótese contém regra, evento/cláusula, justificativa, confiança e `evidenceEventIds`. A confiança é heurística: `medium` para divergência/erro diretamente observado e `low` para suspeita upstream. Uma trajetória aprovada não gera hipóteses. A função não consulta histórico nem prova causalidade; histórico e evidências externas só devem ser adicionados quando realmente disponíveis e referenciados.
 
+## Priorização determinística de hipóteses
+
+`rankRootCauseHypotheses(artifact, history)` ordena as hipóteses para triagem e retorna uma pontuação inteira de 0 a 100 com os fatores que contribuíram para ela:
+
+- `rulePrior`: peso inicial da regra (erro de execução, mismatch de asserção, candidato upstream ou recorrência);
+- `causalProximity`: posição do evento na cadeia causal registrada;
+- `recurrence`: quantidade e proporção de execuções anteriores elegíveis com falha na mesma cláusula;
+- `evidenceCoverage`: proporção de IDs de evidência encontrados no artefato atual ou no histórico elegível.
+
+A ordenação usa pontuação decrescente e desempates estáveis por cláusula e ID. A pontuação é uma heurística de priorização, não uma probabilidade estatística nem prova de causa raiz. Os fatores são expostos para permitir auditoria e recalibração; alterações nos pesos devem vir acompanhadas de testes de regressão.
+
+Exemplo:
+
+```ts
+import { rankRootCauseHypotheses, JsonlTrajectoryHistoryStore } from "@trajestify/core";
+
+const history = new JsonlTrajectoryHistoryStore("./artifacts/history/runs.jsonl");
+const previousRuns = await history.list({
+  trajectoryId: artifact.trajectory.id,
+  before: artifact.startedAt,
+  limit: 100,
+});
+const ranked = rankRootCauseHypotheses(artifact, previousRuns);
+const leadingCandidate = ranked[0]; // conferir evidências antes de agir
+```
+
 ## Armazenamento persistente do histórico
 
 O adaptador `JsonlTrajectoryHistoryStore` oferece armazenamento append-only em JSON Lines, sem acoplar o runtime principal a um banco específico:
