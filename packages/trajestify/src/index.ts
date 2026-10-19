@@ -21,6 +21,11 @@ export interface Clause<C> {
   expected?: unknown;
   dependsOn?: string[];
 }
+export interface AssertionObservation { readonly __trajestifyAssertion: true; readonly expected: unknown; readonly observed: unknown; readonly passed: boolean; }
+export function expectValue(expected: unknown, observed: unknown): AssertionObservation {
+  return { __trajestifyAssertion: true, expected, observed, passed: Object.is(expected, observed) };
+}
+
 export interface StepEvent {
   eventId: string;
   sequence: number;
@@ -114,14 +119,23 @@ export async function runTrajectory<C>(
     const start = now();
     let status: StepStatus = "passed";
     let observed: unknown;
+    let expected: unknown;
     let errorEvidence: StepEvent["error"];
     if (stopped) {
       status = "blocked";
     } else {
       try {
-        observed = await clause.execute(context);
-        // A clause may return false to report an assertion mismatch; throw only for execution errors.
-        if (observed === false && clause.kind === "then") status = "diverged";
+        const result = await clause.execute(context);
+        if (typeof result === "object" && result !== null && "__trajestifyAssertion" in result && result.__trajestifyAssertion === true) {
+          const assertion = result as AssertionObservation;
+          expected = assertion.expected;
+          observed = assertion.observed;
+          if (!assertion.passed && clause.kind === "then") status = "diverged";
+        } else {
+          observed = result;
+          // Returning false from Then is supported as a minimal assertion, but expectValue preserves diagnostic values.
+          if (observed === false && clause.kind === "then") status = "diverged";
+        }
       } catch (error) {
         status = "failed";
         errorEvidence = safeError(error);
@@ -135,8 +149,8 @@ export async function runTrajectory<C>(
       clauseId: clause.id,
       kind: clause.kind,
       status,
-      ...(clause.expected !== undefined ? { expected: clause.expected } : {}),
-      observed,
+      ...(expected !== undefined ? { expected } : clause.expected !== undefined ? { expected: clause.expected } : {}),
+      ...(observed !== undefined ? { observed } : {}),
       startedAt: start.toISOString(),
       finishedAt: finish.toISOString(),
       durationMs: Math.max(0, finish.getTime() - start.getTime()),
