@@ -66,6 +66,17 @@ it does not launch Chromium. See
 limitations, and the smoke scenario. This adapter has been committed but has
 not yet been executed in a local Node/Lightpanda environment.
 
+## Trajestify DSL (Intent + Trajectory + Evidence)
+
+Trajestify is the language-neutral trajectory-testing DSL being developed in this repository. Unlike a PASS/FAIL-only test, its runner emits a structured execution trajectory and first-divergence diagnostic for repair agents.
+
+- [Trajestify specification, reserved keywords, schemas, TypeScript API and artifact contract](docs/Trajestify/README.md)
+- [Canonical buy-product DSL example](examples/buy-product.traj)
+- TypeScript prototype: `packages/trajestify/`
+- CI: `.github/workflows/trajestify.yml`
+
+The initial CI includes a controlled Stock divergence (expected 8, observed 9) and asserts that the full downstream trajectory remains available. This is a deterministic fixture, not an integration against a real inventory service. See the Trajestify documentation for current implementation boundaries.
+
 ## What is BDD?
 
 Behavior-Driven Development (BDD) is a software development approach in which system behavior is described from the perspective of observable behavior rather than implementation details.

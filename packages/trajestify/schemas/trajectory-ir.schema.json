@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trajestify.dev/schemas/trajectory-ir.schema.json",
+  "title": "Trajestify Trajectory IR",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "intentId", "trajectoryId", "clauses", "invariants", "trace", "onDivergence", "evidence"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "intentId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+    "actor": { "type": "string", "minLength": 1 },
+    "trajectoryId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$" },
+    "clauses": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "expression", "source"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+          "kind": { "enum": ["given", "when", "then"] },
+          "expression": { "type": "string", "minLength": 1 },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["line", "column"],
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "column": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "invariants": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "trace": { "enum": ["full", "minimal"] },
+    "onDivergence": { "enum": ["continue", "stop"] },
+    "evidence": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["inputs", "outputs", "state", "errors", "causal_links", "timing", "logs", "attachments"] }
+    }
+  }
+}

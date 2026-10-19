@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trajestify.dev/schemas/trajectory-artifact.schema.json",
+  "title": "Trajestify Trajectory Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "intent",
+    "trajectory",
+    "startedAt",
+    "finishedAt",
+    "steps",
+    "diagnostics",
+    "firstDivergence",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "diverged",
+            "failed"
+          ]
+        }
+      }
+    },
+    "trajectory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "diverged",
+            "failed"
+          ]
+        }
+      }
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "firstDivergence": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/divergence"
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "diverged",
+        "blocked",
+        "skipped"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "diverged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootCause",
+        "causalPath"
+      ],
+      "properties": {
+        "rootCause": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "eventId",
+                "clauseId",
+                "confidence",
+                "basis"
+              ],
+              "properties": {
+                "eventId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clauseId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "confidence": {
+                  "const": "candidate"
+                },
+                "basis": {
+                  "const": "first_divergence"
+                }
+              }
+            }
+          ]
+        },
+        "causalPath": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eventId",
+              "clauseId"
+            ],
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clauseId": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "sequence",
+        "clauseId",
+        "kind",
+        "status",
+        "startedAt",
+        "finishedAt",
+        "durationMs",
+        "causedBy"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clauseId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "given",
+            "when",
+            "then",
+            "invariant",
+            "system"
+          ]
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "diverged",
+            "blocked",
+            "skipped",
+            "error"
+          ]
+        },
+        "expected": {},
+        "observed": {},
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "causedBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      }
+    },
+    "divergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "sequence",
+        "category",
+        "message"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "category": {
+          "enum": [
+            "assertion_mismatch",
+            "execution_error"
+          ]
+        },
+        "expected": {},
+        "observed": {},
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "column"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "message"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
