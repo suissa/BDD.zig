@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "description": "Promoted, deterministic JavaScript semantic regression cases. Add cases from a divergence report with tests/promote-semantic-divergences.mjs.",
+  "cases": []
+}
