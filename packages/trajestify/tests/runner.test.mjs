@@ -40,3 +40,33 @@ test("stock divergence is pinpointed and downstream trajectory is retained", asy
   assert.equal(artifact.steps[4].clauseId, "delivery");
   assert.equal(artifact.summary.diverged, 1);
 });
+
+test("includes a candidate root cause and ordered causal path for divergence", async () => {
+  const intent = defineIntent("buy_product", "Buy product", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    And("when", "financial", "Record transaction", () => true),
+    Then("stock", "Stock is 8", () => expectValue(8, 9)),
+  ]);
+  const artifact = await runTrajectory(intent, {}, { runId: "causal-diagnostic" });
+  assert.deepEqual(artifact.diagnostics.rootCause, {
+    eventId: "causal-diagnostic:evt:4",
+    clauseId: "stock",
+    confidence: "candidate",
+    basis: "first_divergence",
+  });
+  assert.deepEqual(artifact.diagnostics.causalPath.map(node => node.clauseId), [
+    "customer", "sales", "financial", "stock",
+  ]);
+  assert.equal(artifact.diagnostics.causalPath.at(-1)?.eventId, artifact.firstDivergence?.eventId);
+});
+
+test("returns empty causal diagnostics when trajectory has no divergence", async () => {
+  const intent = defineIntent("healthy", "Healthy", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    Then("stock", "Stock is 8", () => true),
+  ]);
+  const artifact = await runTrajectory(intent, {}, { runId: "causal-clean" });
+  assert.deepEqual(artifact.diagnostics, { rootCause: null, causalPath: [] });
+});
