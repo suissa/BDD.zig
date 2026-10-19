@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 import { parseTrajestify, TrajestifyParseError } from "../dist/index.js";
 
 test("parses canonical DSL and normalizes And to prior clause kind", async () => {
-  const source = await readFile(new URL("../../../examples/buy-product.trajest", import.meta.url), "utf8");
-  const doc = parseTrajestify(source, "buy-product.trajest");
+  const source = await readFile(new URL("../../../examples/buy-product.traj", import.meta.url), "utf8");
+  const doc = parseTrajestify(source, "buy-product.traj");
   assert.equal(doc.intent.id, "buy_product");
   assert.equal(doc.trajectory.id, "purchase_product");
   assert.equal(doc.clauses.length, 7);
