@@ -320,6 +320,67 @@ export function inferRootCauseHypotheses(artifact: TrajectoryArtifact, history: 
   return hypotheses;
 }
 
+export interface ScoredRootCauseHypothesis extends RootCauseHypothesis {
+  score: number;
+  scoreFactors: {
+    rulePrior: number;
+    causalProximity: number;
+    recurrence: number;
+    evidenceCoverage: number;
+  };
+}
+
+/**
+ * Ranks hypotheses with a deterministic 0..100 heuristic. Scores prioritize triage;
+ * they are not probabilities and must not be interpreted as proof of causality.
+ */
+export function rankRootCauseHypotheses(
+  artifact: TrajectoryArtifact,
+  history: readonly TrajectoryArtifact[] = [],
+): ScoredRootCauseHypothesis[] {
+  const hypotheses = inferRootCauseHypotheses(artifact, history);
+  const rulePrior: Record<RootCauseHypothesisRule, number> = {
+    execution_error: 45,
+    assertion_mismatch: 40,
+    upstream_state_candidate: 30,
+    historical_recurrence: 25,
+  };
+  const path = artifact.diagnostics.causalPath;
+  const pathIndex = new Map(path.map((node, index) => [node.eventId, index]));
+  const knownEvents = new Set(artifact.steps.map(step => step.eventId));
+  const currentStartedAt = Date.parse(artifact.startedAt);
+  const eligibleHistory = history.filter(previous =>
+    previous.trajectory.id === artifact.trajectory.id &&
+    previous.runId !== artifact.runId &&
+    Number.isFinite(Date.parse(previous.finishedAt)) &&
+    Number.isFinite(currentStartedAt) &&
+    Date.parse(previous.finishedAt) <= currentStartedAt
+  );
+  return hypotheses.map(hypothesis => {
+    const prior = rulePrior[hypothesis.rule];
+    const index = pathIndex.get(hypothesis.eventId);
+    const causalProximity = index === undefined || path.length === 0
+      ? 0
+      : Math.max(0, 20 - (path.length - 1 - index) * 5);
+    let recurrence = 0;
+    if (hypothesis.rule === "historical_recurrence") {
+      const matches = eligibleHistory.filter(previous => previous.steps.some(candidate =>
+        candidate.clauseId === hypothesis.clauseId &&
+        (candidate.status === "diverged" || candidate.status === "failed" || candidate.status === "error")
+      )).length;
+      const rate = eligibleHistory.length === 0 ? 0 : matches / eligibleHistory.length;
+      recurrence = Math.min(25, matches * 8) + Math.round(rate * 10);
+    }
+    const evidenceCoverage = hypothesis.evidenceEventIds.length === 0
+      ? 0
+      : Math.round(10 * hypothesis.evidenceEventIds.filter(id =>
+          knownEvents.has(id) || eligibleHistory.some(previous => previous.steps.some(step => step.eventId === id))
+        ).length / hypothesis.evidenceEventIds.length);
+    const score = Math.max(0, Math.min(100, prior + causalProximity + recurrence + evidenceCoverage));
+    return { ...hypothesis, score, scoreFactors: { rulePrior: prior, causalProximity, recurrence, evidenceCoverage } };
+  }).sort((a, b) => b.score - a.score || a.clauseId.localeCompare(b.clauseId) || a.id.localeCompare(b.id));
+}
+
 export function assertTrajectoryPassed(artifact: TrajectoryArtifact): void {
   if (artifact.intent.status !== "passed") {
     throw new Error(`Trajectory ${artifact.runId} ${artifact.intent.status}; first divergence: ${artifact.firstDivergence?.message ?? "none"}`);
