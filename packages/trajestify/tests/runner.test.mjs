@@ -9,7 +9,7 @@ test("records a complete successful trajectory", async () => {
     When("sale", "Create Sales order", c => { c.sale = true; return c.sale; }),
     And("when", "financial", "Record Financial transaction", c => { c.financial = true; return c.financial; }),
     Then("stock", "Stock is 8", c => { c.stock = 8; return c.stock === 8; }),
-    And("then", "Delivery is scheduled", c => { c.delivery = true; return c.delivery; }),
+    And("then", "delivery", "Delivery is scheduled", c => { c.delivery = true; return c.delivery; }),
   ]);
   const artifact = await runTrajectory(intent, context, { runId: "buy-ok" });
   assert.equal(artifact.intent.status, "passed");
@@ -25,7 +25,7 @@ test("stock divergence is pinpointed and downstream trajectory is retained", asy
     When("sales", "Persist sale", c => { c.sale = true; return true; }),
     And("financial", "Record transaction", c => { c.financial = true; return true; }),
     Then("stock", "Stock is 8", c => { c.stock = 9; return c.stock === 8; }),
-    And("delivery", "Schedule delivery", c => { c.delivery = true; return true; }),
+    And("then", "delivery", "Schedule delivery", c => { c.delivery = true; return true; }),
   ]);
   const artifact = await runTrajectory(intent, context, { runId: "buy-stock-divergence" });
   assert.equal(artifact.intent.status, "diverged");
