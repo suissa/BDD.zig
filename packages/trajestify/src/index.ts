@@ -229,6 +229,70 @@ function buildDiagnostics(steps: StepEvent[], firstDivergence: TrajectoryArtifac
   };
 }
 
+export type RootCauseHypothesisRule = "assertion_mismatch" | "execution_error" | "upstream_state_candidate";
+export interface RootCauseHypothesis {
+  id: string;
+  rule: RootCauseHypothesisRule;
+  eventId: string;
+  clauseId: string;
+  confidence: "low" | "medium";
+  rationale: string;
+  evidenceEventIds: string[];
+}
+
+/**
+ * Derives explainable hypotheses from one artifact. These are leads for investigation,
+ * not proof of causality; no historical or external evidence is inferred.
+ */
+export function inferRootCauseHypotheses(artifact: TrajectoryArtifact): RootCauseHypothesis[] {
+  const divergence = artifact.firstDivergence;
+  if (!divergence) return [];
+  const step = artifact.steps.find(candidate => candidate.eventId === divergence.eventId);
+  if (!step) return [];
+
+  const evidenceEventIds = [step.eventId];
+  const hypotheses: RootCauseHypothesis[] = [];
+  if (divergence.category === "assertion_mismatch") {
+    hypotheses.push({
+      id: `hypothesis:${step.clauseId}:assertion-mismatch`,
+      rule: "assertion_mismatch",
+      eventId: step.eventId,
+      clauseId: step.clauseId,
+      confidence: "medium",
+      rationale: "The observed value did not satisfy the recorded expectation.",
+      evidenceEventIds: [...evidenceEventIds],
+    });
+  } else {
+    hypotheses.push({
+      id: `hypothesis:${step.clauseId}:execution-error`,
+      rule: "execution_error",
+      eventId: step.eventId,
+      clauseId: step.clauseId,
+      confidence: "medium",
+      rationale: step.error?.message ?? divergence.message,
+      evidenceEventIds: [...evidenceEventIds],
+    });
+  }
+
+  const causalPath = artifact.diagnostics.causalPath;
+  if (causalPath.length > 1) {
+    const predecessor = causalPath[causalPath.length - 2]!;
+    const predecessorStep = artifact.steps.find(candidate => candidate.eventId === predecessor.eventId);
+    if (predecessorStep && predecessorStep.status !== "passed") {
+      hypotheses.push({
+        id: `hypothesis:${predecessorStep.clauseId}:upstream-state`,
+        rule: "upstream_state_candidate",
+        eventId: predecessorStep.eventId,
+        clauseId: predecessorStep.clauseId,
+        confidence: "low",
+        rationale: "A non-passing event immediately precedes the first divergence on the recorded causal path.",
+        evidenceEventIds: [predecessorStep.eventId, step.eventId],
+      });
+    }
+  }
+  return hypotheses;
+}
+
 export function assertTrajectoryPassed(artifact: TrajectoryArtifact): void {
   if (artifact.intent.status !== "passed") {
     throw new Error(`Trajectory ${artifact.runId} ${artifact.intent.status}; first divergence: ${artifact.firstDivergence?.message ?? "none"}`);
