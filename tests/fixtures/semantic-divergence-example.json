@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "tests/fixtures/semantic-divergence-example.json",
+  "checkedCombinations": 1,
+  "classifierRules": 735,
+  "divergenceCount": 1,
+  "divergences": [
+    {
+      "caseId": "number.divide.number.L2.R0",
+      "ruleId": "number:divide:number",
+      "rule": {
+        "left": "number",
+        "operator": "divide",
+        "right": "number",
+        "rationale": "Fixture validates deterministic replay of a recorded runtime outcome."
+      },
+      "prediction": {
+        "result": "number_or_nan",
+        "outcome": "runtime_value"
+      },
+      "input": {
+        "left": "2",
+        "right": "0",
+        "leftExpression": "2",
+        "rightExpression": "0",
+        "leftPartitionIndex": 2,
+        "rightPartitionIndex": 0,
+        "context": "replay-tool self-test fixture"
+      },
+      "reproduction": {
+        "expression": "(2) / (0)",
+        "snippet": "console.log(2 / 0);"
+      },
+      "observed": {
+        "kind": "value",
+        "value": "Infinity",
+        "valueType": "number"
+      },
+      "divergence": "Synthetic fixture: replay utility self-test."
+    }
+  ]
+}
