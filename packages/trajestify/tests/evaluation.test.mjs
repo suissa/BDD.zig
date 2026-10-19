@@ -11,6 +11,20 @@ test("evaluation computes MRR, Recall@k, Precision@k and false-positive rate", (
     caseCount: 2, k: 1, mrr: 0.75, recallAtK: 0.5, precisionAtK: 0.5,
     falsePositiveRateAtK: 0.5, casesWithRelevantHit: 2, relevantHypotheses: 2,
     relevantHypothesesRetrievedAtK: 1, topKHypothesesEvaluated: 2, falsePositivesAtK: 1,
+    caseResults: [
+      {
+        caseId: "a", firstRelevantRank: 2, reciprocalRank: 0.5,
+        relevantHypothesisCount: 1, relevantRetrievedAtK: [],
+        missedRelevantHypothesisIds: ["right"], falsePositiveHypothesisIds: ["wrong"],
+        evaluatedTopKHypothesisIds: ["wrong"],
+      },
+      {
+        caseId: "b", firstRelevantRank: 1, reciprocalRank: 1,
+        relevantHypothesisCount: 1, relevantRetrievedAtK: ["target"],
+        missedRelevantHypothesisIds: [], falsePositiveHypothesisIds: [],
+        evaluatedTopKHypothesisIds: ["target"],
+      },
+    ],
   });
 });
 
@@ -21,6 +35,17 @@ test("recall accounts for multiple relevant hypotheses in one case", () => {
   assert.equal(report.recallAtK, 0.5);
   assert.equal(report.precisionAtK, 0.5);
   assert.equal(report.falsePositiveRateAtK, 0.5);
+});
+
+test("case diagnostics identify relevant hypotheses missed by top-k", () => {
+  const report = evaluateRanking([
+    { caseId: "miss", rankedHypothesisIds: ["noise", "candidate"], relevantHypothesisIds: ["not-ranked"] },
+    { caseId: "hit", rankedHypothesisIds: ["candidate"], relevantHypothesisIds: ["candidate"] },
+  ], 1);
+  assert.equal(report.caseResults[0].firstRelevantRank, null);
+  assert.equal(report.caseResults[0].reciprocalRank, 0);
+  assert.deepEqual(report.caseResults[0].missedRelevantHypothesisIds, ["not-ranked"]);
+  assert.deepEqual(report.caseResults[1].missedRelevantHypothesisIds, []);
 });
 
 test("rejects malformed, duplicate, and empty-label cases", () => {
