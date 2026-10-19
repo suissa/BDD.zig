@@ -6,13 +6,13 @@ Intent: buy_product
 Actor: Customer
 
 Trajectory: purchase_product
-Given: Customer is active
-And: Product.stock_initial == 10
-When: Customer buys Product quantity=2
-Then: Sales.order.status == "created"
-And: Financial.transaction.status == "recorded"
-And: Stock.quantity == 8
-And: Delivery.status == "scheduled"
+Given [customer-active]: Customer is active
+And [stock-initial]: Product.stock_initial == 10
+When [purchase-requested]: Customer buys Product quantity=2
+Then [order-created]: Sales.order.status == "created"
+And [financial-recorded]: Financial.transaction.status == "recorded"
+And [stock-decreased]: Stock.quantity == 8
+And [delivery-scheduled]: Delivery.status == "scheduled"
 
 Invariant: Stock.quantity == Product.stock_initial - Intent.quantity
 Trace: full
