@@ -255,6 +255,12 @@ O runtime TypeScript exporta `inferRootCauseHypotheses(artifact)`, que produz hi
 
 Cada hipótese contém regra, evento/cláusula, justificativa, confiança e `evidenceEventIds`. A confiança é heurística: `medium` para divergência/erro diretamente observado e `low` para suspeita upstream. Uma trajetória aprovada não gera hipóteses. A função não consulta histórico nem prova causalidade; histórico e evidências externas só devem ser adicionados quando realmente disponíveis e referenciados.
 
+## Evidência histórica de recorrência
+
+`inferRootCauseHypotheses(artifact, history)` aceita uma lista explícita de artefatos anteriores. A comparação considera apenas execuções da mesma trajetória, com `finishedAt` anterior ao início da execução atual, e procura falha/divergência na mesma `clauseId`. A hipótese `historical_recurrence` registra os `eventId` da execução atual e das execuções anteriores que sustentam o padrão.
+
+Uma ocorrência anterior gera confiança `low`; duas ou mais ocorrências geram `medium`. O denominador informa quantas execuções anteriores eram elegíveis. A função não lê arquivos nem busca histórico automaticamente: o chamador é responsável por fornecer artefatos confiáveis, preservar a proveniência e limitar o conjunto comparado. Recorrência aumenta prioridade de investigação, mas não demonstra que a mesma causa técnica se repetiu.
+
 ## Diagnóstico causal derivado
 
 O runtime acrescenta `diagnostics` ao artifact. `causalPath` é a cadeia de eventos que liga a primeira divergência às referências `causedBy`, ordenada da origem observada até a divergência. Cada nó contém `eventId` e `clauseId`, permitindo que o Agent navegue os eventos sem reconstruir os vínculos manualmente.
