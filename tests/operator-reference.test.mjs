@@ -96,7 +96,7 @@ function divergenceRecord(entry, left, right, context, error, leftIndex, rightIn
     },
     reproduction: {
       expression: `(${leftSource}) ${operator} (${rightSource})`,
-      snippet: `const left = ${leftSource};\\nconst right = ${rightSource};\\ntry { console.log((left) ${operator} (right)); } catch (error) { console.log(error.name + ": " + error.message); }`,
+      snippet: `const left = ${leftSource};\nconst right = ${rightSource};\ntry { console.log((left) ${operator} (right)); } catch (error) { console.log(error.name + ": " + error.message); }`,
     },
     divergence: error instanceof Error ? error.message : String(error),
   };
@@ -203,7 +203,7 @@ test("classifier remains consistent across concrete value partitions", async () 
       divergenceCount: divergences.length,
       divergences,
     };
-    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\\n`);
-    assert.fail(`${divergences.length} semantic divergences found; reproducible report written to ${reportPath}\\n${JSON.stringify(divergences.slice(0, 10), null, 2)}`);
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+    assert.fail(`${divergences.length} semantic divergences found; reproducible report written to ${reportPath}\n${JSON.stringify(divergences.slice(0, 10), null, 2)}`);
   }
 });
