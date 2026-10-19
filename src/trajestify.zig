@@ -32,7 +32,7 @@ pub const TrajectoryIR = struct {
     evidence: []const EvidenceKind,
 };
 
-pub const StepStatus = enum { passed, failed, diverged, blocked, skipped, error };
+pub const StepStatus = enum { passed, failed, diverged, blocked, skipped, @"error" };
 pub const ArtifactIntentStatus = enum { passed, diverged, failed };
 pub const DivergenceCategory = enum { assertion_mismatch, execution_error };
 
