@@ -23,7 +23,7 @@ test("stock divergence is pinpointed and downstream trajectory is retained", asy
   const intent = defineIntent("buy_product", "Buy product", [
     Given("customer", "Customer is active", () => true),
     When("sales", "Persist sale", c => { c.sale = true; return true; }),
-    And("financial", "Record transaction", c => { c.financial = true; return true; }),
+    And("when", "financial", "Record transaction", c => { c.financial = true; return true; }),
     Then("stock", "Stock is 8", c => { c.stock = 9; return c.stock === 8; }),
     And("then", "delivery", "Schedule delivery", c => { c.delivery = true; return true; }),
   ]);
