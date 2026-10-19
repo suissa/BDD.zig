@@ -255,6 +255,25 @@ O runtime TypeScript exporta `inferRootCauseHypotheses(artifact)`, que produz hi
 
 Cada hipótese contém regra, evento/cláusula, justificativa, confiança e `evidenceEventIds`. A confiança é heurística: `medium` para divergência/erro diretamente observado e `low` para suspeita upstream. Uma trajetória aprovada não gera hipóteses. A função não consulta histórico nem prova causalidade; histórico e evidências externas só devem ser adicionados quando realmente disponíveis e referenciados.
 
+## Armazenamento persistente do histórico
+
+O adaptador `JsonlTrajectoryHistoryStore` oferece armazenamento append-only em JSON Lines, sem acoplar o runtime principal a um banco específico:
+
+```ts
+import { JsonlTrajectoryHistoryStore, inferRootCauseHypotheses } from "@trajestify/core";
+
+const history = new JsonlTrajectoryHistoryStore("./artifacts/history/runs.jsonl");
+await history.append(artifact);
+const previousRuns = await history.list({
+  trajectoryId: artifact.trajectory.id,
+  before: artifact.startedAt,
+  limit: 100,
+});
+const hypotheses = inferRootCauseHypotheses(artifact, previousRuns);
+```
+
+O adaptador cria o diretório quando necessário, ordena resultados por início, filtra por trajetória e limite, rejeita IDs de execução duplicados e falha explicitamente diante de linhas corrompidas. A ausência do arquivo representa histórico vazio. O arquivo deve ser protegido como dado operacional sensível; retenção, permissões, backup e serialização entre processos são responsabilidades do ambiente que o hospeda. Para múltiplos escritores concorrentes, use um backend transacional em vez de presumir que JSONL fornece locking.
+
 ## Evidência histórica de recorrência
 
 `inferRootCauseHypotheses(artifact, history)` aceita uma lista explícita de artefatos anteriores. A comparação considera apenas execuções da mesma trajetória, com `finishedAt` anterior ao início da execução atual, e procura falha/divergência na mesma `clauseId`. A hipótese `historical_recurrence` registra os `eventId` da execução atual e das execuções anteriores que sustentam o padrão.
