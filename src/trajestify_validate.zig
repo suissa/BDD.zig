@@ -1,5 +1,6 @@
 const std = @import("std");
 const trajestify = @import("trajestify.zig");
+const causal = @import("trajestify_causal.zig");
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
@@ -19,7 +20,8 @@ pub fn main() !void {
         std.debug.print("Trajestify IR valid: {s} ({d} clauses)\n", .{ ir.name, ir.clauses.len });
     } else if (std.mem.eql(u8, args[1], "artifact")) {
         const artifact = try trajestify.parseArtifact(allocator, bytes);
-        std.debug.print("Trajestify artifact valid: {s} ({d} steps, status={s})\n", .{
+        try causal.validateCausalGraph(artifact.steps);
+        std.debug.print("Trajestify artifact valid: {s} ({d} steps, status={s}, causal=valid)\n", .{
             artifact.runId,
             artifact.steps.len,
             @tagName(artifact.trajectory.status),
