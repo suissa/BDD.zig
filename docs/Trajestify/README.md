@@ -263,15 +263,17 @@ O runner não deve presumir que `Stock` é uma classe. É um nome semântico res
 O objetivo é uma API familiar a CucumberJS sem prender o núcleo à sintaxe Cucumber:
 
 ```ts
-import { defineIntent, Given, When, Then, runTrajectory } from "@trajestify/core";
+import { defineIntent, Given, When, Then, And, runTrajectory } from "@trajestify/core";
 
-const purchase = defineIntent("buy_product", {
-  Given("customer is active", async ctx => ctx.customer.active = true),
-  When("customer buys {int} units", async (ctx, quantity: number) => ctx.buy(quantity)),
-  Then("stock is {int}", async (ctx, expected: number) => ctx.expectStock(expected)),
-});
+const purchase = defineIntent("buy_product", "Buy product", [
+  Given("customer", "Customer is active", async ctx => ctx.customer.active),
+  When("sales", "Persist sale", async ctx => ctx.buy(2)),
+  And("when", "financial", "Record transaction", async ctx => ctx.recordFinancial()),
+  Then("stock", "Stock is 8", async ctx => ctx.stock === 8, /* source location optional */),
+  And("then", "delivery", "Schedule delivery", async ctx => ctx.scheduleDelivery()),
+]);
 
-const artifact = await runTrajectory(purchase, { context: purchaseContext });
+const artifact = await runTrajectory(purchase, purchaseContext);
 ```
 
 A API é uma direção proposta; nomes e assinatura podem evoluir antes de publicação. A implementação deve permitir registrar step definitions, executar hooks, produzir artifact estruturado e disponibilizar o artifact mesmo quando uma etapa falhar. Não se deve copiar a API de CucumberJS integralmente nem tornar Cucumber uma dependência obrigatória.
@@ -325,3 +327,10 @@ O DSL inicial deste diretório não substitui Gherkin nem a implementação exis
 - Compatibilidade estável de schema antes de publicar a primeira versão formal.
 
 Esses limites são intencionais: o primeiro contrato deve ser simples, versionado e verificável antes de expandir a linguagem.
+
+
+Machine-readable schemas:
+- [Normalized DSL document AST](../../packages/trajestify/schemas/trajestify-document.schema.json)
+- [Trajectory Artifact JSON](../../packages/trajestify/schemas/trajectory-artifact.schema.json)
+
+The initial TypeScript API uses `Given(id, text, execute)`, `When(id, text, execute)`, and `Then(id, text, execute)`. `And(kind, id, text, execute)` explicitly receives the inherited semantic kind in v0.1. The example above illustrates the intended adapter integration; it is not yet a published npm package.
