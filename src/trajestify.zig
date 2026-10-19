@@ -200,6 +200,23 @@ fn cloneIR(allocator: std.mem.Allocator, ir: TrajectoryIR) !TrajectoryIR {
     };
 }
 
+/// Releases every allocation returned by parseIR. The caller owns the parsed IR.
+pub fn deinitIR(allocator: std.mem.Allocator, ir: TrajectoryIR) void {
+    for (ir.clauses) |clause| {
+        allocator.free(clause.id);
+        allocator.free(clause.expression);
+        if (clause.source.file) |file| allocator.free(file);
+    }
+    allocator.free(ir.clauses);
+    for (ir.invariants) |expression| allocator.free(expression);
+    allocator.free(ir.invariants);
+    allocator.free(ir.name);
+    allocator.free(ir.intentId);
+    if (ir.actor) |actor| allocator.free(actor);
+    allocator.free(ir.trajectoryId);
+    allocator.free(ir.evidence);
+}
+
 pub fn parseArtifact(allocator: std.mem.Allocator, json_bytes: []const u8) !TrajectoryArtifact {
     const artifact = try std.json.parseFromSliceLeaky(TrajectoryArtifact, allocator, json_bytes, .{ .allocate = .alloc_always, .ignore_unknown_fields = false });
     try validateArtifact(artifact);
@@ -288,7 +305,7 @@ test "validates IR and rejects duplicate clause IDs" {
         \\{"schemaVersion":1,"name":"Buy product","intentId":"buy_product","trajectoryId":"purchase_product","clauses":[{"id":"customer-active","kind":"given","expression":"Customer is active","source":{"line":7,"column":1}},{"id":"purchase-requested","kind":"when","expression":"Customer buys Product","source":{"line":8,"column":1}},{"id":"order-created","kind":"then","expression":"Order exists","source":{"line":9,"column":1}}],"invariants":[],"trace":"full","onDivergence":"continue","evidence":["inputs","outputs"]}
     ;
     const ir = try parseIR(allocator, valid);
-    defer allocator.free(ir.clauses);
+    defer deinitIR(allocator, ir);
     try std.testing.expectEqual(@as(usize, 3), ir.clauses.len);
 
     const duplicate =
