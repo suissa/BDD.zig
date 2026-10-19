@@ -24,7 +24,7 @@ test("rejects unknown reserved keywords with source position", () => {
 });
 
 test("rejects duplicate explicit step IDs", () => {
-  const source = "Trajestify: X\\nVersion: 1\\nIntent: x\\nTrajectory: t\\nGiven [same]: active\\nWhen [same]: act\\nThen: done";
+  const source = "Trajestify: X\nVersion: 1\nIntent: x\nTrajectory: t\nGiven [same]: active\nWhen [same]: act\nThen: done";
   assert.throws(() => parseTrajestify(source), /Duplicate clause id: same/);
 });
 
