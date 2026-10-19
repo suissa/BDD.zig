@@ -31,7 +31,7 @@ jobs:
       - name: Verify divergence promotion and promoted regression
         run: |
           node tests/promote-semantic-divergences.mjs tests/fixtures/semantic-divergence-example.json /tmp/semantic-regressions-smoke.json
-          node --test tests/semantic-regression-reference.test.mjs /tmp/semantic-regressions-smoke.json
+          node tests/semantic-regression-reference.test.mjs /tmp/semantic-regressions-smoke.json
       - name: Upload semantic divergence report
         if: failure()
         uses: actions/upload-artifact@v4
