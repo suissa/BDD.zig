@@ -329,5 +329,8 @@ export function assertTrajectoryPassed(artifact: TrajectoryArtifact): void {
 export { parseTrajestify, TrajestifyParseError } from "./parser.js";
 export type { TrajestifyDocument, DslClause, DslClauseKind } from "./parser.js";
 
+export { JsonlTrajectoryHistoryStore } from "./history-store.js";
+export type { TrajectoryHistoryStore } from "./history-store.js";
+
 export { bindTrajectory, compileToIR, TrajestifyBindingError } from "./compiler.js";
 export type { TrajectoryIR, StepBinding, StepBindings } from "./compiler.js";
