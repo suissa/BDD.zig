@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const corpusPath = process.argv[2] ?? "tests/semantic-regressions.json";
+const matrixPath = "tests/generated-operator-matrix.json";
 const operations = {
   add: (a, b) => a + b,
   subtract: (a, b) => a - b,
@@ -43,6 +44,32 @@ function describeValue(value) {
   return JSON.stringify(value) ?? String(value);
 }
 
+function assertPrediction(rule, left, right, observed, caseId) {
+  if (rule.outcome === "type_error") {
+    assert.equal(observed.kind, "error", `${caseId}: classifier predicts TypeError but runtime returned a value`);
+    assert.equal(observed.name, "TypeError", `${caseId}: classifier predicts TypeError`);
+    return;
+  }
+  if (observed.kind === "error") {
+    assert.notEqual(observed.name, "TypeError", `${caseId}: classifier missed TypeError: ${observed.message}`);
+    return; // Some errors depend on values, e.g. BigInt division by zero.
+  }
+  switch (rule.result) {
+    case "string": assert.equal(observed.valueType, "string", `${caseId}: expected string`); break;
+    case "boolean": assert.equal(observed.valueType, "boolean", `${caseId}: expected boolean`); break;
+    case "bigint": assert.equal(observed.valueType, "bigint", `${caseId}: expected bigint`); break;
+    case "number":
+    case "number_or_nan": assert.equal(observed.valueType, "number", `${caseId}: expected number`); break;
+    case "operand": {
+      const expected = rule.operator === "logical_and" ? (left ? right : left) : (left ? left : right);
+      assert.equal(observed.value, describeValue(expected), `${caseId}: logical operator returned the wrong operand`);
+      assert.equal(observed.valueType, typeof expected, `${caseId}: logical operator returned the wrong operand type`);
+      break;
+    }
+    default: assert.fail(`${caseId}: unknown predicted result category ${rule.result}`);
+  }
+}
+
 function observe(entry, left, right) {
   try {
     const value = operations[entry.rule.operator](left, right);
@@ -53,6 +80,8 @@ function observe(entry, left, right) {
 }
 
 const corpus = JSON.parse(await readFile(corpusPath, "utf8"));
+const matrix = JSON.parse(await readFile(matrixPath, "utf8"));
+const rulesById = new Map(matrix.map((rule) => [`${rule.left}:${rule.operator}:${rule.right}`, rule]));
 assert.equal(corpus.schemaVersion, 1, "unsupported semantic regression corpus schema");
 assert.ok(Array.isArray(corpus.cases), "semantic regression corpus must contain cases");
 
@@ -71,8 +100,18 @@ test(`promoted semantic regressions (${corpus.cases.length} case(s))`, async (t)
       assert.ok(rightValues && Number.isInteger(entry.input.rightPartitionIndex) &&
         entry.input.rightPartitionIndex >= 0 && entry.input.rightPartitionIndex < rightValues.length,
       `${entry.caseId}: invalid right partition index`);
-      const actual = observe(entry, leftValues[entry.input.leftPartitionIndex], rightValues[entry.input.rightPartitionIndex]);
+      const left = leftValues[entry.input.leftPartitionIndex];
+      const right = rightValues[entry.input.rightPartitionIndex];
+      const rule = rulesById.get(entry.ruleId);
+      assert.ok(rule, `${entry.caseId}: rule ${entry.ruleId} is missing from Zig-generated matrix`);
+      assert.deepEqual(
+        { result: entry.prediction?.result, outcome: entry.prediction?.outcome },
+        { result: rule.result, outcome: rule.outcome },
+        `${entry.caseId}: promoted prediction no longer matches the Zig classifier`,
+      );
+      const actual = observe(entry, left, right);
       assert.deepEqual(actual, entry.expected, `${entry.caseId}: JavaScript outcome changed; ${entry.reproduction?.expression ?? ""}`);
+      assertPrediction(rule, left, right, actual, entry.caseId);
     });
   }
 });
