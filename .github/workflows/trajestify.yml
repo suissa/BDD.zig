@@ -13,6 +13,7 @@ on:
     paths:
       - "packages/trajestify/**"
       - "examples/**"
+      - "src/trajestify*.zig"
       - "docs/Trajestify/**"
       - ".github/workflows/trajestify.yml"
   workflow_dispatch:
@@ -30,7 +31,7 @@ jobs:
           node-version: 22
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: 0.16.0
       - name: Install package dependencies
         working-directory: packages/trajestify
         run: npm install --no-package-lock --ignore-scripts
@@ -66,6 +67,10 @@ jobs:
         run: |
           zig run ../../src/trajestify_validate.zig -- ir ../../artifacts/trajestify-ir.json
           zig run ../../src/trajestify_validate.zig -- artifact ../../artifacts/trajestify-stock-divergence.json
+      - name: Run native Trajestify Zig tests
+        run: |
+          zig test src/trajestify.zig
+          zig test src/trajestify_causal.zig
       - name: Upload Trajectory Artifact
         uses: actions/upload-artifact@v4
         with:
