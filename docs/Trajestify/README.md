@@ -4,7 +4,7 @@
 
 Trajestify nasce dentro de `BDD.zig`, mas seu contrato semântico não pertence a Zig. Zig é uma implementação do runner; adapters futuros podem executar a mesma Intent em TypeScript/Node, browsers, serviços HTTP ou outras linguagens. O objetivo da biblioteca TypeScript é oferecer uma experiência familiar a CucumberJS, mantendo a semântica de Intent, Trajectory e Evidence como núcleo próprio.
 
-> Status: esta é a especificação inicial v0.1 e um protótipo TypeScript independente. O parser DSL, a representação intermediária e o runtime TS ainda são uma primeira fatia; não há ainda integração automática entre a DSL e os contextos de execução nativos do BDD.zig.
+> Status: esta é a especificação inicial v0.1 e um protótipo TypeScript independente. O parser DSL agora compila para uma IR semântica e pode ser ligado ao runtime TypeScript por bindings explícitos. A integração com contextos de execução nativos do BDD.zig continua pendente.
 
 ## 1. Princípios
 
@@ -334,3 +334,32 @@ Machine-readable schemas:
 - [Trajectory Artifact JSON](../../packages/trajestify/schemas/trajectory-artifact.schema.json)
 
 The initial TypeScript API uses `Given(id, text, execute)`, `When(id, text, execute)`, and `Then(id, text, execute)`. `expectValue(expected, observed)` preserves both values in a divergence artifact rather than recording only `false`. `And(kind, id, text, execute)` explicitly receives the inherited semantic kind in v0.1. The example above illustrates the intended adapter integration; it is not yet a published npm package.
+
+
+## 13. Integração DSL → IR → TypeScript runtime
+
+A primeira integração executável está disponível em `packages/trajestify/src/compiler.ts`:
+
+- `parseTrajestify(source)` valida e normaliza o arquivo `.traj`.
+- `compileToIR(document)` gera uma representação intermediária sem dependência de Zig ou TypeScript.
+- `bindTrajectory(ir, bindings)` associa cada cláusula a uma função fornecida pelo adapter.
+- `runTrajectory(intent, context)` executa as funções registradas e produz o Trajectory Artifact.
+
+Exemplo de ligação por ID de cláusula:
+
+```ts
+import { parseTrajestify, compileToIR, bindTrajectory, runTrajectory } from "@trajestify/core";
+
+const document = parseTrajestify(source, "buy-product.traj");
+const ir = compileToIR(document);
+const intent = bindTrajectory(ir, {
+  "clause-1": async context => context.customer.active,
+  "clause-2": async context => context.stock === 10,
+  // Registre explicitamente os demais IDs presentes no IR.
+});
+const artifact = await runTrajectory(intent, context);
+```
+
+Os IDs `clause-1`, `clause-2` são atribuídos pela ordem no arquivo; adapters de produção devem preferir IDs explícitos e estáveis quando essa capacidade for adicionada à gramática. Até lá, também é possível registrar um binding usando o texto exato da expressão. Se qualquer cláusula ou invariante não tiver binding, `bindTrajectory` falha imediatamente com `TrajestifyBindingError`: texto da DSL nunca é executado por `eval`.
+
+Invariantes são convertidos em etapas de runtime do tipo `invariant` e divergências de invariantes geram evidência, sem substituir a primeira divergência anterior. Um teste de integração lê `examples/buy-product.traj`, compila o IR e executa bindings com divergência de estoque (esperado 8, observado 9), verificando que a etapa Delivery continua registrada. O adapter ainda é fornecido manualmente pelo código TypeScript; inferência automática de ações a partir de linguagem natural não faz parte deste contrato.
