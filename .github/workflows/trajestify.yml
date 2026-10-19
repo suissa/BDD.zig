@@ -44,7 +44,7 @@ jobs:
           const intent = defineIntent('buy_product', 'Buy product', [
             Given('customer', 'Customer active', () => true),
             When('sales', 'Sale persisted', () => true),
-            And('financial', 'Financial transaction recorded', () => true),
+            And('when', 'financial', 'Financial transaction recorded', () => true),
             Then('stock', 'Stock equals 8', c => { c.stock = 9; return c.stock === 8; }),
             And('then', 'delivery', 'Delivery stage captured', c => { c.delivery = true; return true; }),
           ]);
