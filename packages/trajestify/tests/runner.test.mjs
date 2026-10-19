@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { defineIntent, Given, When, Then, And, expectValue, runTrajectory, inferRootCauseHypotheses } from "../dist/index.js";
+import { defineIntent, Given, When, Then, And, expectValue, runTrajectory, inferRootCauseHypotheses, rankRootCauseHypotheses } from "../dist/index.js";
 
 test("records a complete successful trajectory", async () => {
   const context = { stock: 10, sale: false, financial: false, delivery: false };
@@ -128,4 +128,27 @@ test("uses only earlier runs of the same trajectory as historical evidence", asy
   const otherTrajectory = structuredClone(previous);
   otherTrajectory.trajectory.id = "unrelated";
   assert.equal(inferRootCauseHypotheses(current, [otherTrajectory]).some(h => h.rule === "historical_recurrence"), false);
+});
+
+
+test("ranks root cause hypotheses with reproducible scores and visible factors", async () => {
+  const intent = defineIntent("buy_product", "Buy product", [
+    Given("customer", "Customer is active", () => true),
+    When("sales", "Persist sale", () => true),
+    Then("stock", "Stock is 8", () => expectValue(8, 9)),
+  ]);
+  const previous = await runTrajectory(intent, {}, { runId: "rank-history" });
+  previous.startedAt = "2026-10-17T10:00:00.000Z";
+  previous.finishedAt = "2026-10-17T10:00:01.000Z";
+  const current = await runTrajectory(intent, {}, { runId: "rank-current" });
+  current.startedAt = "2026-10-19T10:00:00.000Z";
+  current.finishedAt = "2026-10-19T10:00:01.000Z";
+
+  const ranked = rankRootCauseHypotheses(current, [previous]);
+  assert.ok(ranked.length >= 2);
+  assert.deepEqual(ranked, rankRootCauseHypotheses(current, [previous]));
+  assert.ok(ranked.every(item => Number.isInteger(item.score) && item.score >= 0 && item.score <= 100));
+  assert.ok(ranked.every(item => item.scoreFactors && Number.isInteger(item.scoreFactors.rulePrior)));
+  assert.equal(ranked[0].rule, "assertion_mismatch");
+  assert.ok(ranked[0].score > ranked.find(item => item.rule === "historical_recurrence").score);
 });
