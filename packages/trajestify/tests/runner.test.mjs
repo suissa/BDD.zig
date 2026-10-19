@@ -7,7 +7,7 @@ test("records a complete successful trajectory", async () => {
   const intent = defineIntent("buy_product", "Buy product", [
     Given("customer", "Customer is active", () => true),
     When("sale", "Create Sales order", c => { c.sale = true; return c.sale; }),
-    And("when", "Record Financial transaction", c => { c.financial = true; return c.financial; }),
+    And("when", "financial", "Record Financial transaction", c => { c.financial = true; return c.financial; }),
     Then("stock", "Stock is 8", c => { c.stock = 8; return c.stock === 8; }),
     And("then", "Delivery is scheduled", c => { c.delivery = true; return c.delivery; }),
   ]);
