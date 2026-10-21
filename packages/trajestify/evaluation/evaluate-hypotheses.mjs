@@ -33,19 +33,34 @@ export function evaluateRanking(cases, k = 3) {
   let topKCount = 0;
   let falsePositiveCount = 0;
   let casesWithHit = 0;
+  const caseResults = [];
 
   for (const item of checked) {
     const relevant = new Set(item.relevantHypothesisIds);
     const cutoff = item.rankedHypothesisIds.slice(0, k);
-    const firstRelevantRank = item.rankedHypothesisIds.findIndex(id => relevant.has(id));
-    if (firstRelevantRank >= 0) {
-      reciprocalRankSum += 1 / (firstRelevantRank + 1);
-      casesWithHit++;
-    }
+    const firstRelevantIndex = item.rankedHypothesisIds.findIndex(id => relevant.has(id));
+    const firstRelevantRank = firstRelevantIndex < 0 ? null : firstRelevantIndex + 1;
+    const reciprocalRank = firstRelevantRank === null ? 0 : 1 / firstRelevantRank;
+    const retrievedRelevantIds = cutoff.filter(id => relevant.has(id));
+    const falsePositiveIds = cutoff.filter(id => !relevant.has(id));
+    const missedRelevantHypothesisIds = item.relevantHypothesisIds.filter(id => !cutoff.includes(id));
+
+    reciprocalRankSum += reciprocalRank;
+    if (firstRelevantRank !== null) casesWithHit++;
     relevantTotal += relevant.size;
-    relevantRetrieved += cutoff.filter(id => relevant.has(id)).length;
+    relevantRetrieved += retrievedRelevantIds.length;
     topKCount += cutoff.length;
-    falsePositiveCount += cutoff.filter(id => !relevant.has(id)).length;
+    falsePositiveCount += falsePositiveIds.length;
+    caseResults.push({
+      caseId: item.caseId,
+      firstRelevantRank,
+      reciprocalRank: Number(reciprocalRank.toFixed(6)),
+      relevantHypothesisCount: relevant.size,
+      relevantRetrievedAtK: retrievedRelevantIds,
+      missedRelevantHypothesisIds,
+      falsePositiveHypothesisIds: falsePositiveIds,
+      evaluatedTopKHypothesisIds: cutoff,
+    });
   }
 
   return {
@@ -60,6 +75,7 @@ export function evaluateRanking(cases, k = 3) {
     relevantHypothesesRetrievedAtK: relevantRetrieved,
     topKHypothesesEvaluated: topKCount,
     falsePositivesAtK: falsePositiveCount,
+    caseResults,
   };
 }
 
@@ -76,8 +92,10 @@ async function main() {
   const args = process.argv.slice(2);
   const filePath = args.find(arg => !arg.startsWith("--")) ?? new URL("./corpus.synthetic.jsonl", import.meta.url);
   const kArg = args.find(arg => arg.startsWith("--k="));
+  const includeDetails = args.includes("--details");
   const k = kArg ? Number(kArg.slice(4)) : 3;
   const result = await evaluateFile(filePath, k);
+  if (!includeDetails) delete result.caseResults;
   process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 }
 
