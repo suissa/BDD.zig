@@ -4,24 +4,80 @@
   "title": "Trajestify Incident Corpus Case",
   "type": "object",
   "additionalProperties": false,
-  "required": ["caseId", "trajectoryId", "runId", "outcome", "rankedHypothesisIds", "confirmedRootCause"],
+  "required": [
+    "caseId",
+    "trajectoryId",
+    "runId",
+    "outcome",
+    "rankedHypothesisIds",
+    "confirmedRootCause"
+  ],
   "properties": {
-    "caseId": { "type": "string", "minLength": 1 },
-    "trajectoryId": { "type": "string", "minLength": 1 },
-    "runId": { "type": "string", "minLength": 1 },
-    "outcome": { "enum": ["diverged", "failed", "error"] },
-    "rankedHypothesisIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectoryId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome": {
+      "enum": [
+        "diverged",
+        "failed",
+        "error"
+      ]
+    },
+    "rankedHypothesisIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
     "confirmedRootCause": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hypothesisId", "eventId", "verification"],
+      "required": [
+        "hypothesisId",
+        "eventId",
+        "verification",
+        "evidenceIds"
+      ],
       "properties": {
-        "hypothesisId": { "type": "string", "minLength": 1 },
-        "eventId": { "type": "string", "minLength": 1 },
-        "verification": { "enum": ["confirmed", "rejected"] },
-        "evidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+        "hypothesisId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification": {
+          "enum": [
+            "confirmed",
+            "rejected"
+          ]
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
       }
     },
-    "notes": { "type": "string" }
+    "notes": {
+      "type": "string"
+    }
   }
 }
