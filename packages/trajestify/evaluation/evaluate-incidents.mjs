@@ -31,7 +31,7 @@ export function evaluateIncidentCorpus(incidents, k = 3) {
 
 export async function evaluateIncidentFile(filePath, k = 3) {
   const raw = await readFile(filePath, "utf8");
-  const incidents = raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+  const incidents = raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
     try { return JSON.parse(line); }
     catch (error) { throw new Error(`Invalid incident JSONL at line ${index + 1}: ${error.message}`); }
   });
