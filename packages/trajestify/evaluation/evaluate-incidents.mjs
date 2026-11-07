@@ -5,6 +5,10 @@ import { evaluateRanking } from "./evaluate-hypotheses.mjs";
 function incidentToEvaluationCase(incident, index) {
   const prefix = `incident[${index}]`;
   if (!incident || typeof incident !== "object" || Array.isArray(incident)) throw new Error(`${prefix} must be an object`);
+  for (const field of ["trajectoryId", "runId"]) {
+    if (typeof incident[field] !== "string" || !incident[field].trim()) throw new Error(`${prefix}.${field} is required`);
+  }
+  if (!["diverged", "failed", "error"].includes(incident.outcome)) throw new Error(`${prefix}.outcome must be diverged, failed or error`);
   const root = incident.confirmedRootCause;
   if (!root || root.verification !== "confirmed" || typeof root.hypothesisId !== "string" || !root.hypothesisId.trim()) {
     throw new Error(`${prefix}.confirmedRootCause must contain a confirmed hypothesisId`);
@@ -13,9 +17,12 @@ function incidentToEvaluationCase(incident, index) {
     throw new Error(`${prefix}.confirmedRootCause.evidenceIds must contain evidence references`);
   }
   if (typeof incident.caseId !== "string" || !incident.caseId.trim()) throw new Error(`${prefix}.caseId is required`);
-  if (!Array.isArray(incident.rankedHypothesisIds) || incident.rankedHypothesisIds.length === 0) {
-    throw new Error(`${prefix}.rankedHypothesisIds must be non-empty`);
+  if (typeof root.eventId !== "string" || !root.eventId.trim()) throw new Error(`${prefix}.confirmedRootCause.eventId is required`);
+  if (new Set(root.evidenceIds).size !== root.evidenceIds.length) throw new Error(`${prefix}.confirmedRootCause.evidenceIds must be unique`);
+  if (!Array.isArray(incident.rankedHypothesisIds) || incident.rankedHypothesisIds.length === 0 || incident.rankedHypothesisIds.some(id => typeof id !== "string" || !id.trim())) {
+    throw new Error(`${prefix}.rankedHypothesisIds must contain non-empty strings`);
   }
+  if (new Set(incident.rankedHypothesisIds).size !== incident.rankedHypothesisIds.length) throw new Error(`${prefix}.rankedHypothesisIds must be unique`);
   return {
     caseId: incident.caseId,
     rankedHypothesisIds: incident.rankedHypothesisIds,
