@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://suissa.github.io/BDD.zig/trajestify/incident-corpus.schema.json",
+  "title": "Trajestify Incident Corpus Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["caseId", "trajectoryId", "runId", "outcome", "rankedHypothesisIds", "confirmedRootCause"],
+  "properties": {
+    "caseId": { "type": "string", "minLength": 1 },
+    "trajectoryId": { "type": "string", "minLength": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "outcome": { "enum": ["diverged", "failed", "error"] },
+    "rankedHypothesisIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "confirmedRootCause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hypothesisId", "eventId", "verification"],
+      "properties": {
+        "hypothesisId": { "type": "string", "minLength": 1 },
+        "eventId": { "type": "string", "minLength": 1 },
+        "verification": { "enum": ["confirmed", "rejected"] },
+        "evidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}
