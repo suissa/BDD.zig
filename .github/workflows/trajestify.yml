@@ -38,6 +38,9 @@ jobs:
       - name: Build TypeScript runtime and run DSL/trajectory tests
         working-directory: packages/trajestify
         run: npm test
+      - name: Evaluate labeled synthetic incident corpus
+        working-directory: packages/trajestify
+        run: node evaluation/evaluate-incidents.mjs evaluation/corpus.incidents.synthetic.jsonl --k=2 --details
       - name: Generate and validate diagnostic artifact
         working-directory: packages/trajestify
         run: |
