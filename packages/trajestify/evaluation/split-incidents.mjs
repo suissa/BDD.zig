@@ -37,7 +37,6 @@ export function validateIncidentSplit(incidents, manifest) {
     if (!assignments.has(trajectoryId) || !SPLITS.has(assignments.get(trajectoryId))) {
       throw new Error(`Missing split assignment for trajectory: ${trajectoryId}`);
     }
-    trajectorySplits.set(trajectoryId, assignments.get(trajectoryId));
   }
   for (const trajectoryId of assignments.keys()) {
     if (!observed.has(trajectoryId)) throw new Error(`Manifest references unknown trajectory: ${trajectoryId}`);
