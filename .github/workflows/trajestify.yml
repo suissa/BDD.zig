@@ -44,6 +44,9 @@ jobs:
       - name: Run holdout incident benchmark and regression gate
         working-directory: packages/trajestify
         run: npm run benchmark
+      - name: Compare ranker candidates using calibration and holdout
+        working-directory: packages/trajestify
+        run: npm run evaluate:rankers
       - name: Generate and validate diagnostic artifact
         working-directory: packages/trajestify
         run: |
