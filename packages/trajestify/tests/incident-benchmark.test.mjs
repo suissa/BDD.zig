@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { evaluateHoldoutBenchmark, assertNoBenchmarkRegression } from "../evaluation/run-incident-benchmark.mjs";
 
 const incidents = (await readFile(new URL("../evaluation/benchmark-fixture.synthetic.jsonl", import.meta.url), "utf8"))
-  .trim().split(/\\r?\\n/).map(line => JSON.parse(line));
+  .trim().split(/\r?\n/).map(line => JSON.parse(line));
 const manifest = JSON.parse(await readFile(new URL("../evaluation/benchmark-split.synthetic.json", import.meta.url), "utf8"));
 const baseline = JSON.parse(await readFile(new URL("../evaluation/benchmark-baseline.synthetic.json", import.meta.url), "utf8"));
 
