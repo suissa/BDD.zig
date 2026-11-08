@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "synthetic-fixture-v1",
+  "evaluatedSplit": "holdout",
+  "k": 2,
+  "metrics": {
+    "mrr": 0.5,
+    "recallAtK": 1,
+    "precisionAtK": 0.5
+  },
+  "maxRegression": {
+    "mrr": 0.05,
+    "recallAtK": 0.05,
+    "precisionAtK": 0.05
+  },
+  "notice": "Synthetic smoke-test baseline. Replace only after reviewing a versioned, representative incident corpus."
+}
