@@ -1,0 +1,23 @@
+{
+  "description": "Synthetic smoke-test predictions; not production ranker measurements.",
+  "rankers": [
+    {
+      "rankerId": "baseline-frequency",
+      "version": "1",
+      "predictions": [
+        { "caseId": "train-001", "rankedHypothesisIds": ["noise", "cause-train"] },
+        { "caseId": "calibration-001", "rankedHypothesisIds": ["noise", "cause-calibration"] },
+        { "caseId": "holdout-001", "rankedHypothesisIds": ["noise", "cause-holdout", "other"] }
+      ]
+    },
+    {
+      "rankerId": "evidence-first",
+      "version": "2",
+      "predictions": [
+        { "caseId": "train-001", "rankedHypothesisIds": ["cause-train", "noise"] },
+        { "caseId": "calibration-001", "rankedHypothesisIds": ["cause-calibration", "noise"] },
+        { "caseId": "holdout-001", "rankedHypothesisIds": ["noise", "cause-holdout", "other"] }
+      ]
+    }
+  ]
+}
