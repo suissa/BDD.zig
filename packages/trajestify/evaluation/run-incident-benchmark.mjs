@@ -5,7 +5,7 @@ import { evaluateIncidentCorpus } from "./evaluate-incidents.mjs";
 import { validateIncidentSplit } from "./split-incidents.mjs";
 
 function parseJsonl(raw, label) {
-  return raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+  return raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
     try { return JSON.parse(line); }
     catch (error) { throw new Error(`Invalid ${label} JSONL at line ${index + 1}: ${error.message}`); }
   });
@@ -81,7 +81,7 @@ async function main() {
     rankerVersion: value("ranker-version") ?? "reference-ranker-v1",
     k: Number(value("k") ?? 2),
   });
-  process.stdout.write(JSON.stringify(result, null, 2) + "\\n");
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => { console.error(error.message); process.exitCode = 1; });
