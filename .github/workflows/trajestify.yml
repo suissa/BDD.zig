@@ -41,6 +41,9 @@ jobs:
       - name: Evaluate labeled synthetic incident corpus
         working-directory: packages/trajestify
         run: node evaluation/evaluate-incidents.mjs evaluation/corpus.incidents.synthetic.jsonl --k=2 --details
+      - name: Run holdout incident benchmark and regression gate
+        working-directory: packages/trajestify
+        run: npm run benchmark
       - name: Generate and validate diagnostic artifact
         working-directory: packages/trajestify
         run: |

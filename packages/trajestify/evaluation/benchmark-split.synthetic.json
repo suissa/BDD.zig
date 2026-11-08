@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "Synthetic smoke-test split only; not a production benchmark dataset.",
+  "assignments": [
+    { "trajectoryId": "trajectory-train", "split": "train" },
+    { "trajectoryId": "trajectory-calibration", "split": "calibration" },
+    { "trajectoryId": "trajectory-holdout", "split": "holdout" }
+  ]
+}
