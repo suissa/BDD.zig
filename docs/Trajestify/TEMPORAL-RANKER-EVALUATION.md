@@ -27,4 +27,4 @@ Each incident must contain `caseId`, `runId`, `trajectoryId` and an independentl
 - **Rank change rate:** frequency with which the confirmed hypothesis position changes between consecutive observations in one trajectory.
 - Per-trajectory observations expose the prefix history count, ranked position, top hypothesis, and timestamp for audit.
 
-This is a temporal protocol, not evidence of production performance. The tests use synthetic artifacts; use independently confirmed incident labels and a representative longitudinal corpus before interpreting scores operationally. Rank scores remain heuristic, not probabilities or causal proof.
+This is a temporal protocol, not evidence of production performance. The tests use synthetic artifacts; use independently confirmed incident labels and a representative longitudinal corpus before interpreting scores operationally. Rank scores remain heuristic, not probabilities or causal proof. A recurring-history signal can legitimately move a confirmed hypothesis down the list; report rank changes rather than assuming rank invariance.
