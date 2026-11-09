@@ -1,10 +1,10 @@
 # Trajectory replay and counterfactual evaluation
 
-The counterfactual evaluator compares a recorded divergent trajectory with a second execution of the same intent under a declared intervention.
+The counterfactual replay API executes the same intent twice from independent copies of one initial context: an unchanged baseline and a counterfactual run with a declared intervention. The evaluator then compares the resulting artifacts.
 
 ## Run
 
-Build Trajestify, then provide paired artifacts as JSON:
+Build Trajestify. Use `runCounterfactualReplay` to create a pair directly in TypeScript, or provide previously captured paired artifacts to the evaluator:
 
 ```sh
 npm run evaluate:counterfactual -- --input=evaluation/replays.json
@@ -18,6 +18,12 @@ Each replay record contains:
 - `confirmedHypothesisId` (optional): independently confirmed hypothesis used only to inspect its rank.
 
 Both artifacts must include the intervention target clause. The baseline must contain a divergence. The evaluator reports whether the divergence was resolved, persisted at the same clause, or shifted to another clause. It also reports each run's ranked hypotheses and, when supplied, the confirmed hypothesis rank.
+
+## Executing a paired replay
+
+`runCounterfactualReplay(definition, initialContext, intervention, options)` runs the baseline and then applies `intervention.apply` to a separate context clone before running the counterfactual. The result contains both artifacts and the intervention metadata, ready to pass to `evaluateCounterfactualReplay({ replays: [...] })`. Contexts use `structuredClone` by default; pass `options.cloneContext` for custom classes, functions, handles, or other non-serializable state. Run IDs must be distinct and the target clause must exist in the intent.
+
+The runner isolates in-memory context only. It cannot undo database writes, network requests, messages, or other external side effects inside clause handlers. Use side-effect-free fixtures, mocks, or a disposable environment for replay.
 
 ## Interpretation and safeguards
 

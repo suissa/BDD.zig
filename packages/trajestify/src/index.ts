@@ -395,3 +395,74 @@ export type { TrajectoryHistoryStore } from "./history-store.js";
 
 export { bindTrajectory, compileToIR, TrajestifyBindingError } from "./compiler.js";
 export type { TrajectoryIR, StepBinding, StepBindings } from "./compiler.js";
+
+
+export interface CounterfactualReplayOptions<C> {
+  baselineRunId: string;
+  counterfactualRunId: string;
+  cloneContext?: (context: C) => C;
+  now?: () => Date;
+}
+
+export interface CounterfactualReplayResult {
+  baseline: TrajectoryArtifact;
+  counterfactual: TrajectoryArtifact;
+  intervention: { id: string; targetClauseId: string; description: string };
+}
+
+/**
+ * Executes a paired baseline/counterfactual run from independent copies of one
+ * initial context. The intervention is applied only to the counterfactual copy.
+ * This helper does not roll back external side effects performed by clause code.
+ */
+export async function runCounterfactualReplay<C>(
+  definition: IntentDefinition<C>,
+  initialContext: C,
+  intervention: {
+    id: string;
+    targetClauseId: string;
+    description: string;
+    apply: (context: C) => C | void | Promise<C | void>;
+  },
+  options: CounterfactualReplayOptions<C>,
+): Promise<CounterfactualReplayResult> {
+  if (!options?.baselineRunId?.trim() || !options?.counterfactualRunId?.trim()) {
+    throw new Error("Counterfactual replay requires distinct non-empty baseline and counterfactual run IDs");
+  }
+  if (options.baselineRunId === options.counterfactualRunId) {
+    throw new Error("Baseline and counterfactual run IDs must be distinct");
+  }
+  if (!intervention?.id?.trim() || !intervention.targetClauseId?.trim() || !intervention.description?.trim()) {
+    throw new Error("Intervention requires id, targetClauseId and description");
+  }
+  if (!definition.clauses.some(clause => clause.id === intervention.targetClauseId)) {
+    throw new Error(`Unknown intervention target clause: ${intervention.targetClauseId}`);
+  }
+  const clone = options.cloneContext ?? ((context: C) => {
+    try {
+      return structuredClone(context);
+    } catch {
+      throw new Error("Initial context is not structured-cloneable; provide cloneContext explicitly");
+    }
+  });
+  const baselineContext = clone(initialContext);
+  const counterfactualContext = clone(initialContext);
+  const baseline = await runTrajectory(definition, baselineContext, {
+    runId: options.baselineRunId,
+    ...(options.now ? { now: options.now } : {}),
+  });
+  const changedContext = await intervention.apply(counterfactualContext);
+  const counterfactual = await runTrajectory(definition, changedContext === undefined ? counterfactualContext : changedContext, {
+    runId: options.counterfactualRunId,
+    ...(options.now ? { now: options.now } : {}),
+  });
+  return {
+    baseline,
+    counterfactual,
+    intervention: {
+      id: intervention.id,
+      targetClauseId: intervention.targetClauseId,
+      description: intervention.description,
+    },
+  };
+}
