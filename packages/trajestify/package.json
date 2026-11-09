@@ -17,7 +17,8 @@
     "test": "npm run build && node --test tests/*.test.mjs",
     "benchmark": "node evaluation/run-incident-benchmark.mjs",
     "evaluate:rankers": "node evaluation/run-ranker-evaluation.mjs",
-    "ranker:predict": "node evaluation/build-native-ranker-candidate.mjs"
+    "ranker:predict": "node evaluation/build-native-ranker-candidate.mjs",
+    "evaluate:temporal": "node evaluation/evaluate-temporal-ranker.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
