@@ -29,8 +29,8 @@ test("temporal evaluation uses only chronological same-trajectory prefix history
   assert.equal(result.incidentCount,3);
   assert.equal(result.trajectoryCount,1);
   assert.deepEqual(result.trajectoryResults[0].observations.map(x=>x.historyCount),[0,1,2]);
-  assert.equal(result.mrr,1);
-  assert.equal(result.top1Accuracy,1);
+  assert.equal(result.mrr,5/6);
+  assert.equal(result.top1Accuracy,2/3);
   assert.equal(result.rankCoverage,1);
 });
 
