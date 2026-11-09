@@ -18,7 +18,8 @@
     "benchmark": "node evaluation/run-incident-benchmark.mjs",
     "evaluate:rankers": "node evaluation/run-ranker-evaluation.mjs",
     "ranker:predict": "node evaluation/build-native-ranker-candidate.mjs",
-    "evaluate:temporal": "node evaluation/evaluate-temporal-ranker.mjs"
+    "evaluate:temporal": "node evaluation/evaluate-temporal-ranker.mjs",
+    "evaluate:counterfactual": "node evaluation/evaluate-counterfactual-replay.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
