@@ -50,7 +50,10 @@ export function evaluateCounterfactualSensitivity({
       throw new Error(`${prefix}.label must be a non-empty string when provided`);
     }
 
-    const report = evaluateCounterfactualRobustness({ experiments: condition.experiments });
+    if (!Array.isArray(condition.experiments) || condition.experiments.length === 0 ||
+        !Array.isArray(condition.experiments[0]?.replays)) {
+      throw new Error(`${prefix}.experiments must contain at least one valid repetition`);
+    }
     // A repetition deliberately shares one baseline across its interventions.
     // Register that baseline once, then register each counterfactual run separately.
     for (const experiment of condition.experiments) {
@@ -68,7 +71,7 @@ export function evaluateCounterfactualSensitivity({
       }
     }
 
-    const ids = report.interventions.map(item => item.interventionId).sort();
+    const ids = condition.experiments[0].replays.map(replay => replay.intervention.id).sort();
     if (expectedInterventions === null) {
       expectedInterventions = ids;
       expectedMetadata = new Map();
@@ -95,6 +98,8 @@ export function evaluateCounterfactualSensitivity({
         }
       }
     }
+
+    const report = evaluateCounterfactualRobustness({ experiments: condition.experiments });
 
     reports.push({
       conditionId: condition.conditionId,
