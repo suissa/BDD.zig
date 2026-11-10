@@ -159,7 +159,11 @@ export function evaluateCounterfactualSensitivity({
       interventionId,
       contextConditionCount: byCondition.length,
       resolutionRateSpread,
-      maximumOutcomeDistributionDistance: maximumDistributionDistance,\n      resolutionRateDifferenceIntervals95,\n      uncertaintyAssessment: resolutionRateDifferenceIntervals95.some(interval => interval.excludesZero)\n        ? "at-least-one-pairwise-interval-excludes-zero"\n        : "overlapping-or-inconclusive",
+      maximumOutcomeDistributionDistance: maximumDistributionDistance,
+      resolutionRateDifferenceIntervals95,
+      uncertaintyAssessment: resolutionRateDifferenceIntervals95.some(interval => interval.excludesZero)
+        ? "at-least-one-pairwise-interval-excludes-zero"
+        : "overlapping-or-inconclusive",
       dominantOutcomeChangesAcrossConditions: dominantOutcomes.size > 1,
       sensitive,
       classification: sensitive ? "context-sensitive" : "stable-across-tested-contexts",
@@ -183,7 +187,8 @@ export function evaluateCounterfactualSensitivity({
     limitations: [
       "Sensitivity describes differences observed across supplied context conditions; it does not establish causation.",
       "A stable classification applies only to the tested contexts, fixtures and repetitions.",
-      "The resolution-rate threshold is an explicit descriptive policy, not a statistical significance test.",\n      "Pairwise resolution-rate intervals combine independent Wilson intervals conservatively; they are unadjusted for multiple comparisons and are not causal-effect intervals.",
+      "The resolution-rate threshold is an explicit descriptive policy, not a statistical significance test.",
+      "Pairwise resolution-rate intervals combine independent Wilson intervals conservatively; they are unadjusted for multiple comparisons and are not causal-effect intervals.",
       "Context conditions should be controlled and documented; unmeasured differences can confound comparisons.",
     ],
   };
