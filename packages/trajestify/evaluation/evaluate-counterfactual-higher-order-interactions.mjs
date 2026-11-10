@@ -81,6 +81,7 @@ export function evaluateCounterfactualHigherOrderInteractions({ experiments, com
       throw new Error(`${prefix}.subsets must enumerate every non-empty proper subset (${expectedSubsetCount})`);
     }
     const subsetKeys = new Set();
+    const subsetInterventionIds = new Set();
     const subsets = combination.subsets.map((subset, subsetIndex) => {
       if (!subset || typeof subset.interventionId !== "string" || !subset.interventionId.trim()) {
         throw new Error(`${prefix}.subsets[${subsetIndex}].interventionId is required`);
@@ -89,9 +90,10 @@ export function evaluateCounterfactualHigherOrderInteractions({ experiments, com
         throw new Error(`Unknown subset intervention: ${subset.interventionId}`);
       }
       if (subset.interventionId === combination.combinationId ||
-          components.includes(subset.interventionId)) {
-        throw new Error(`Subset intervention IDs must be distinct from the full combination and component IDs`);
+          components.includes(subset.interventionId) || subsetInterventionIds.has(subset.interventionId)) {
+        throw new Error(`Subset intervention IDs must be unique and distinct from the full combination and component IDs`);
       }
+      subsetInterventionIds.add(subset.interventionId);
       if (!Array.isArray(subset.componentIds) || subset.componentIds.length === 0 ||
           subset.componentIds.length >= components.length ||
           subset.componentIds.some(id => !components.includes(id)) ||
