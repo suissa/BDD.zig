@@ -45,7 +45,7 @@ test("robustness evaluator measures stable outcomes across independent repetitio
   assert.ok(fix.resolvedRateWilson95.upper <= 1);
 });
 
-test("robustness evaluator reports unstable baselines and mixed intervention outcomes", async () => {
+test("robustness evaluator reports mixed outcomes across repetitions", async () => {
   const experiments = [
     await repetition(1),
     await repetition(2, 9),
