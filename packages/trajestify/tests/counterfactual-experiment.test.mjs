@@ -79,7 +79,7 @@ test("experiment requires unique run IDs and supports custom context cloning", a
     apply: context => { context.actualAmount = 10; },
   }], {
     experimentId: "custom-clone",
-    baselineRunId: "same",
+    baselineRunId: "base-run",
     counterfactualRunIds: { fix: "same" },
     cloneContext: context => ({ ...context }),
   });
