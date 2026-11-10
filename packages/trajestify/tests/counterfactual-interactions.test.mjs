@@ -80,10 +80,10 @@ test("interaction evaluator rejects malformed pairs, unknown interventions and m
     experiments, combinations: [{ combinationId: "unknown", interventionIds: ["fix-tax", "fix-discount"] }],
   }), /Unknown combined intervention/);
   assert.throws(() => evaluateCounterfactualInteractions({
-    experiments: experiments.map(experiment => ({
+    experiments: experiments.map((experiment, index) => index === 0 ? ({
       ...experiment,
       replays: experiment.replays.filter(replay => replay.intervention.id !== "fix-discount"),
-    })),
+    }) : experiment),
     combinations,
   }), /same intervention set/);
 });
