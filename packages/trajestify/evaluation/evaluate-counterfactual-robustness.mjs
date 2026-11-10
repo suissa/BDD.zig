@@ -47,15 +47,19 @@ export function evaluateCounterfactualRobustness({ experiments }) {
     repetitionIds.add(experiment.repetitionId);
 
     const evaluation = evaluateCounterfactualReplay({ replays: experiment.replays });
+    if (allRunIds.has(firstReplay.baseline.runId)) {
+      throw new Error(`Baseline run ID reused across repetitions: ${firstReplay.baseline.runId}`);
+    }
+    allRunIds.add(firstReplay.baseline.runId);
     const current = new Map();
     for (const replay of experiment.replays) {
       const { id, targetClauseId, description } = replay.intervention;
       if (current.has(id)) throw new Error(`Duplicate intervention in repetition ${experiment.repetitionId}: ${id}`);
       current.set(id, { targetClauseId, description });
-      for (const runId of [replay.baseline.runId, replay.counterfactual.runId]) {
-        if (allRunIds.has(runId)) throw new Error(`Run ID reused across repetitions: ${runId}`);
-        allRunIds.add(runId);
+      if (allRunIds.has(replay.counterfactual.runId)) {
+        throw new Error(`Run ID reused across repetitions: ${replay.counterfactual.runId}`);
       }
+      allRunIds.add(replay.counterfactual.runId);
       const result = evaluation.results.find(item => item.replayId === replay.replayId);
       observationsByIntervention.set(id, [
         ...(observationsByIntervention.get(id) ?? []),
