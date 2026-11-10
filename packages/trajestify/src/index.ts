@@ -466,3 +466,118 @@ export async function runCounterfactualReplay<C>(
     },
   };
 }
+
+
+export interface CounterfactualExperimentIntervention<C> {
+  id: string;
+  targetClauseId: string;
+  description: string;
+  apply: (context: C) => C | void | Promise<C | void>;
+}
+
+export interface CounterfactualExperimentOptions<C> {
+  experimentId: string;
+  baselineRunId: string;
+  /** Maps every intervention ID to its unique counterfactual run ID. */
+  counterfactualRunIds: Record<string, string>;
+  cloneContext?: (context: C) => C;
+  now?: () => Date;
+}
+
+export interface CounterfactualExperimentReplay {
+  replayId: string;
+  baseline: TrajectoryArtifact;
+  counterfactual: TrajectoryArtifact;
+  intervention: { id: string; targetClauseId: string; description: string };
+}
+
+export interface CounterfactualExperimentResult {
+  schemaVersion: 1;
+  experimentId: string;
+  baseline: TrajectoryArtifact;
+  replays: CounterfactualExperimentReplay[];
+  causalClaim: false;
+}
+
+/**
+ * Runs one shared baseline and a set of isolated interventions. Every intervention
+ * receives a fresh clone of the original context; interventions never accumulate.
+ * The returned replay pairs can be passed directly to evaluateCounterfactualReplay.
+ * Only in-memory context is cloned: clause handlers must be side-effect-safe or mocked.
+ */
+export async function runCounterfactualExperiment<C>(
+  definition: IntentDefinition<C>,
+  initialContext: C,
+  interventions: readonly CounterfactualExperimentIntervention<C>[],
+  options: CounterfactualExperimentOptions<C>,
+): Promise<CounterfactualExperimentResult> {
+  if (!options?.experimentId?.trim() || !options.baselineRunId?.trim()) {
+    throw new Error("Counterfactual experiment requires experimentId and baselineRunId");
+  }
+  if (!Array.isArray(interventions) || interventions.length === 0) {
+    throw new Error("Counterfactual experiment requires at least one intervention");
+  }
+  const interventionIds = new Set<string>();
+  const runIds = new Set<string>([options.baselineRunId]);
+  const clauseIds = new Set(definition.clauses.map(clause => clause.id));
+  for (const intervention of interventions) {
+    if (!intervention?.id?.trim() || !intervention.targetClauseId?.trim() || !intervention.description?.trim() ||
+        typeof intervention.apply !== "function") {
+      throw new Error("Each intervention requires id, targetClauseId, description and apply");
+    }
+    if (interventionIds.has(intervention.id)) throw new Error(`Duplicate intervention id: ${intervention.id}`);
+    interventionIds.add(intervention.id);
+    if (!clauseIds.has(intervention.targetClauseId)) {
+      throw new Error(`Unknown intervention target clause: ${intervention.targetClauseId}`);
+    }
+    const runId = options.counterfactualRunIds?.[intervention.id];
+    if (typeof runId !== "string" || !runId.trim()) {
+      throw new Error(`Missing counterfactual run ID for intervention: ${intervention.id}`);
+    }
+    if (runIds.has(runId)) throw new Error(`Duplicate experiment run ID: ${runId}`);
+    runIds.add(runId);
+  }
+
+  const clone = options.cloneContext ?? ((context: C) => {
+    try {
+      return structuredClone(context);
+    } catch {
+      throw new Error("Initial context is not structured-cloneable; provide cloneContext explicitly");
+    }
+  });
+  const baseline = await runTrajectory(definition, clone(initialContext), {
+    runId: options.baselineRunId,
+    ...(options.now ? { now: options.now } : {}),
+  });
+  const replays: CounterfactualExperimentReplay[] = [];
+  // Sequential execution keeps side-effect ordering explicit and avoids shared mutable state.
+  for (const intervention of interventions) {
+    const context = clone(initialContext);
+    const changedContext = await intervention.apply(context);
+    const counterfactual = await runTrajectory(
+      definition,
+      changedContext === undefined ? context : changedContext,
+      {
+        runId: options.counterfactualRunIds[intervention.id]!,
+        ...(options.now ? { now: options.now } : {}),
+      },
+    );
+    replays.push({
+      replayId: `${options.experimentId}:${intervention.id}`,
+      baseline,
+      counterfactual,
+      intervention: {
+        id: intervention.id,
+        targetClauseId: intervention.targetClauseId,
+        description: intervention.description,
+      },
+    });
+  }
+  return {
+    schemaVersion: 1,
+    experimentId: options.experimentId,
+    baseline,
+    replays,
+    causalClaim: false,
+  };
+}
