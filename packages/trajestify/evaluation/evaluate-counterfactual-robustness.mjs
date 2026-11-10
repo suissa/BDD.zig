@@ -65,15 +65,13 @@ export function evaluateCounterfactualRobustness({ experiments }) {
     const ids = [...current.keys()].sort();
     if (expectedInterventions === null) {
       expectedInterventions = ids;
-      for (const id of ids) observationsByIntervention.set(id, []);
     } else if (ids.length !== expectedInterventions.length ||
       ids.some((id, idIndex) => id !== expectedInterventions[idIndex])) {
       throw new Error("Every repetition must contain the same intervention set");
     }
-    for (const id of ids) {
-      const expected = experiment.interventionMetadata?.[id];
-      // Metadata consistency is checked directly against the first repetition below.
-      void expected;
+    const firstReplay = experiment.replays[0];
+    if (experiment.replays.some(replay => replay.baseline.runId !== firstReplay.baseline.runId)) {
+      throw new Error("Each repetition must reuse one shared baseline across interventions");
     }
     const firstBaseline = experiment.replays[0].baseline;
     baselineSignatures.push({
