@@ -20,9 +20,9 @@ Each condition requires at least two independent repetitions. Intervention IDs, 
 
 ## Interpretation
 
-For each intervention, the report includes resolution rates by condition, the absolute resolution-rate spread, the maximum pairwise total-variation distance between the three outcome distributions (resolved, persists, shifted), and whether the dominant outcome changes.
+For each intervention, the report includes resolution rates and Wilson 95% intervals by condition, the absolute resolution-rate spread, the maximum pairwise total-variation distance between the three outcome distributions (resolved, persists, shifted), and whether the dominant outcome changes. It also reports a conservative pairwise interval for each difference in resolution rates, formed as [lower(A) - upper(B), upper(A) - lower(B)]. The `uncertaintyAssessment` is `at-least-one-pairwise-interval-excludes-zero` only when at least one such interval excludes zero; otherwise it is `overlapping-or-inconclusive`.
 
-An intervention is classified as `context-sensitive` when its resolution-rate spread exceeds `sensitivityThreshold` or its dominant outcome changes. Otherwise it is `stable-across-tested-contexts`. The default threshold is 0.2 and valid values are in [0, 1]. This is a descriptive decision rule, not a significance test.
+An intervention is classified as `context-sensitive` when its resolution-rate spread exceeds `sensitivityThreshold` or its dominant outcome changes. Otherwise it is `stable-across-tested-contexts`. The default threshold is 0.2 and valid values are in [0, 1]. This remains a descriptive decision rule, not a significance test. Pairwise intervals are unadjusted for multiple comparisons and are not causal-effect intervals; with few repetitions, overlapping intervals should be interpreted as inconclusive rather than evidence of equivalence.
 
 ## Limitations and experimental discipline
 
