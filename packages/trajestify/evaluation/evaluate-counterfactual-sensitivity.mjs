@@ -51,14 +51,20 @@ export function evaluateCounterfactualSensitivity({
     }
 
     const report = evaluateCounterfactualRobustness({ experiments: condition.experiments });
+    // A repetition deliberately shares one baseline across its interventions.
+    // Register that baseline once, then register each counterfactual run separately.
     for (const experiment of condition.experiments) {
+      const baselineRunId = experiment.replays[0]?.baseline.runId;
+      if (globalRunIds.has(baselineRunId)) {
+        throw new Error(`Run ID reused across context conditions: ${baselineRunId}`);
+      }
+      globalRunIds.add(baselineRunId);
       for (const replay of experiment.replays) {
-        for (const runId of [replay.baseline.runId, replay.counterfactual.runId]) {
-          if (globalRunIds.has(runId)) {
-            throw new Error(`Run ID reused across context conditions: ${runId}`);
-          }
-          globalRunIds.add(runId);
+        const counterfactualRunId = replay.counterfactual.runId;
+        if (globalRunIds.has(counterfactualRunId)) {
+          throw new Error(`Run ID reused across context conditions: ${counterfactualRunId}`);
         }
+        globalRunIds.add(counterfactualRunId);
       }
     }
 
