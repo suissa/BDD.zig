@@ -46,7 +46,12 @@ test("sensitivity evaluator distinguishes stable and context-sensitive intervent
   assert.equal(fix.resolutionRateSpread, 1);
   assert.equal(fix.dominantOutcomeChangesAcrossConditions, true);
   assert.equal(noop.classification, "stable-across-tested-contexts");
-  assert.equal(noop.resolutionRateSpread, 0);\n  assert.equal(fix.byCondition[0].resolvedRateWilson95.lower < 1, true);\n  assert.equal(fix.resolutionRateDifferenceIntervals95.length, 1);\n  assert.equal(fix.resolutionRateDifferenceIntervals95[0].excludesZero, false);\n  assert.equal(fix.uncertaintyAssessment, "overlapping-or-inconclusive");\n  assert.equal(noop.uncertaintyAssessment, "overlapping-or-inconclusive");
+  assert.equal(noop.resolutionRateSpread, 0);
+  assert.equal(fix.byCondition[0].resolvedRateWilson95.lower < 1, true);
+  assert.equal(fix.resolutionRateDifferenceIntervals95.length, 1);
+  assert.equal(fix.resolutionRateDifferenceIntervals95[0].excludesZero, false);
+  assert.equal(fix.uncertaintyAssessment, "overlapping-or-inconclusive");
+  assert.equal(noop.uncertaintyAssessment, "overlapping-or-inconclusive");
 });
 
 test("sensitivity evaluator supports a configurable threshold and distribution distance", async () => {
