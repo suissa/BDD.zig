@@ -121,6 +121,7 @@ export function evaluateCounterfactualSensitivity({
           outcome, item.outcomeCounts[outcome] / total,
         ])),
         resolvedRate: item.resolvedRate,
+        resolvedRateWilson95: item.resolvedRateWilson95,
         dominantOutcome: item.dominantOutcome,
       };
     });
@@ -135,6 +136,22 @@ export function evaluateCounterfactualSensitivity({
         maximumDistributionDistance = Math.max(maximumDistributionDistance, distance);
       }
     }
+    const resolutionRateDifferenceIntervals95 = [];
+    for (let left = 0; left < byCondition.length; left += 1) {
+      for (let right = left + 1; right < byCondition.length; right += 1) {
+        const a = byCondition[left].resolvedRateWilson95;
+        const b = byCondition[right].resolvedRateWilson95;
+        const lower = a.lower - b.upper;
+        const upper = a.upper - b.lower;
+        resolutionRateDifferenceIntervals95.push({
+          conditionA: byCondition[left].conditionId,
+          conditionB: byCondition[right].conditionId,
+          lower,
+          upper,
+          excludesZero: lower > 0 || upper < 0,
+        });
+      }
+    }
     const dominantOutcomes = new Set(byCondition.map(item => item.dominantOutcome));
     const sensitive = resolutionRateSpread > sensitivityThreshold ||
       dominantOutcomes.size > 1;
@@ -142,7 +159,7 @@ export function evaluateCounterfactualSensitivity({
       interventionId,
       contextConditionCount: byCondition.length,
       resolutionRateSpread,
-      maximumOutcomeDistributionDistance: maximumDistributionDistance,
+      maximumOutcomeDistributionDistance: maximumDistributionDistance,\n      resolutionRateDifferenceIntervals95,\n      uncertaintyAssessment: resolutionRateDifferenceIntervals95.some(interval => interval.excludesZero)\n        ? "at-least-one-pairwise-interval-excludes-zero"\n        : "overlapping-or-inconclusive",
       dominantOutcomeChangesAcrossConditions: dominantOutcomes.size > 1,
       sensitive,
       classification: sensitive ? "context-sensitive" : "stable-across-tested-contexts",
@@ -166,7 +183,7 @@ export function evaluateCounterfactualSensitivity({
     limitations: [
       "Sensitivity describes differences observed across supplied context conditions; it does not establish causation.",
       "A stable classification applies only to the tested contexts, fixtures and repetitions.",
-      "The resolution-rate threshold is an explicit descriptive policy, not a statistical significance test.",
+      "The resolution-rate threshold is an explicit descriptive policy, not a statistical significance test.",\n      "Pairwise resolution-rate intervals combine independent Wilson intervals conservatively; they are unadjusted for multiple comparisons and are not causal-effect intervals.",
       "Context conditions should be controlled and documented; unmeasured differences can confound comparisons.",
     ],
   };
