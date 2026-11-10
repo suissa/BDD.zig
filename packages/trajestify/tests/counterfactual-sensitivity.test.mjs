@@ -46,7 +46,7 @@ test("sensitivity evaluator distinguishes stable and context-sensitive intervent
   assert.equal(fix.resolutionRateSpread, 1);
   assert.equal(fix.dominantOutcomeChangesAcrossConditions, true);
   assert.equal(noop.classification, "stable-across-tested-contexts");
-  assert.equal(noop.resolutionRateSpread, 0);
+  assert.equal(noop.resolutionRateSpread, 0);\n  assert.equal(fix.byCondition[0].resolvedRateWilson95.lower < 1, true);\n  assert.equal(fix.resolutionRateDifferenceIntervals95.length, 1);\n  assert.equal(fix.resolutionRateDifferenceIntervals95[0].excludesZero, false);\n  assert.equal(fix.uncertaintyAssessment, "overlapping-or-inconclusive");\n  assert.equal(noop.uncertaintyAssessment, "overlapping-or-inconclusive");
 });
 
 test("sensitivity evaluator supports a configurable threshold and distribution distance", async () => {
@@ -77,4 +77,25 @@ test("sensitivity evaluator rejects intervention metadata drift across condition
   const second = await condition("second", 10, 70);
   second.experiments[0].replays[0].intervention.description = "Different intervention";
   assert.throws(() => evaluateCounterfactualSensitivity({ conditions: [first, second] }), /metadata changed between context conditions/);
+});
+
+
+test("sensitivity evaluator reports pairwise intervals for every condition pair", async () => {
+  const result = evaluateCounterfactualSensitivity({
+    conditions: [
+      await condition("one", 10, 80),
+      await condition("two", 10, 90),
+      await condition("three", 10, 100),
+    ],
+  });
+  const fix = result.interventions.find(item => item.interventionId === "fix");
+  assert.equal(fix.resolutionRateDifferenceIntervals95.length, 3);
+  assert.deepEqual(
+    fix.resolutionRateDifferenceIntervals95.map(item => [item.conditionA, item.conditionB]),
+    [["one", "two"], ["one", "three"], ["two", "three"]],
+  );
+  assert.ok(fix.resolutionRateDifferenceIntervals95.every(item =>
+    Number.isFinite(item.lower) && Number.isFinite(item.upper) &&
+    item.lower <= item.upper && typeof item.excludesZero === "boolean"
+  ));
 });
