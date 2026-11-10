@@ -47,6 +47,10 @@ export function evaluateCounterfactualRobustness({ experiments }) {
     repetitionIds.add(experiment.repetitionId);
 
     const evaluation = evaluateCounterfactualReplay({ replays: experiment.replays });
+    const firstReplay = experiment.replays[0];
+    if (experiment.replays.some(replay => replay.baseline.runId !== firstReplay.baseline.runId)) {
+      throw new Error("Each repetition must reuse one shared baseline across interventions");
+    }
     if (allRunIds.has(firstReplay.baseline.runId)) {
       throw new Error(`Baseline run ID reused across repetitions: ${firstReplay.baseline.runId}`);
     }
@@ -73,11 +77,7 @@ export function evaluateCounterfactualRobustness({ experiments }) {
       ids.some((id, idIndex) => id !== expectedInterventions[idIndex])) {
       throw new Error("Every repetition must contain the same intervention set");
     }
-    const firstReplay = experiment.replays[0];
-    if (experiment.replays.some(replay => replay.baseline.runId !== firstReplay.baseline.runId)) {
-      throw new Error("Each repetition must reuse one shared baseline across interventions");
-    }
-    const firstBaseline = experiment.replays[0].baseline;
+    const firstBaseline = firstReplay.baseline;
     baselineSignatures.push({
       repetitionId: experiment.repetitionId,
       signature: baselineSignature(firstBaseline),
