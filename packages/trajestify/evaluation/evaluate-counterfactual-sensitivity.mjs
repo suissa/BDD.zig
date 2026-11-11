@@ -2,6 +2,53 @@ import { evaluateCounterfactualRobustness } from "./evaluate-counterfactual-robu
 
 const OUTCOMES = ["resolved", "persists", "shifted"];
 
+function wilsonInterval(successes, total, z) {
+  if (total === 0) return { lower: null, upper: null };
+  const proportion = successes / total;
+  const zSquared = z * z;
+  const denominator = 1 + zSquared / total;
+  const center = (proportion + zSquared / (2 * total)) / denominator;
+  const margin = z * Math.sqrt(
+    (proportion * (1 - proportion) / total) + zSquared / (4 * total * total),
+  ) / denominator;
+  return {
+    lower: Math.max(0, center - margin),
+    upper: Math.min(1, center + margin),
+  };
+}
+
+// Acklam's inverse-normal approximation; used to obtain Bonferroni-adjusted
+// Wilson critical values without adding a runtime dependency.
+function normalQuantile(probability) {
+  if (!(probability > 0 && probability < 1)) {
+    throw new Error("Normal quantile probability must be between 0 and 1");
+  }
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687,
+    138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866,
+    66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838,
+    -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996,
+    3.754408661907416];
+  const lower = 0.02425;
+  const upper = 1 - lower;
+  if (probability < lower) {
+    const q = Math.sqrt(-2 * Math.log(probability));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (probability > upper) {
+    const q = Math.sqrt(-2 * Math.log(1 - probability));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  const q = probability - 0.5;
+  const squared = q * q;
+  return (((((a[0] * squared + a[1]) * squared + a[2]) * squared + a[3]) * squared + a[4]) * squared + a[5]) * q /
+    (((((b[0] * squared + b[1]) * squared + b[2]) * squared + b[3]) * squared + b[4]) * squared + 1);
+}
+
 function validateThreshold(value) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) {
     throw new Error("sensitivityThreshold must be a finite number between 0 and 1");
@@ -137,6 +184,12 @@ export function evaluateCounterfactualSensitivity({
       }
     }
     const resolutionRateDifferenceIntervals95 = [];
+    const resolutionRateDifferenceIntervals95Bonferroni = [];
+    const pairwiseComparisonCount = (byCondition.length * (byCondition.length - 1)) / 2;
+    // Each pairwise difference combines two marginal Wilson intervals. Allocate
+    // alpha/(2m) to each marginal interval so all m differences have >=95%
+    // family-wise coverage by the union bound.
+    const adjustedZ = normalQuantile(1 - (0.05 / (4 * pairwiseComparisonCount)));
     for (let left = 0; left < byCondition.length; left += 1) {
       for (let right = left + 1; right < byCondition.length; right += 1) {
         const a = byCondition[left].resolvedRateWilson95;
@@ -150,6 +203,28 @@ export function evaluateCounterfactualSensitivity({
           upper,
           excludesZero: lower > 0 || upper < 0,
         });
+
+        const adjustedA = wilsonInterval(
+          byCondition[left].outcomeCounts.resolved,
+          byCondition[left].repetitions,
+          adjustedZ,
+        );
+        const adjustedB = wilsonInterval(
+          byCondition[right].outcomeCounts.resolved,
+          byCondition[right].repetitions,
+          adjustedZ,
+        );
+        const adjustedLower = adjustedA.lower - adjustedB.upper;
+        const adjustedUpper = adjustedA.upper - adjustedB.lower;
+        resolutionRateDifferenceIntervals95Bonferroni.push({
+          conditionA: byCondition[left].conditionId,
+          conditionB: byCondition[right].conditionId,
+          lower: adjustedLower,
+          upper: adjustedUpper,
+          excludesZero: adjustedLower > 0 || adjustedUpper < 0,
+          familyWiseConfidenceLevel: 0.95,
+          adjustment: "bonferroni",
+        });
       }
     }
     const dominantOutcomes = new Set(byCondition.map(item => item.dominantOutcome));
@@ -161,9 +236,13 @@ export function evaluateCounterfactualSensitivity({
       resolutionRateSpread,
       maximumOutcomeDistributionDistance: maximumDistributionDistance,
       resolutionRateDifferenceIntervals95,
+      resolutionRateDifferenceIntervals95Bonferroni,
       uncertaintyAssessment: resolutionRateDifferenceIntervals95.some(interval => interval.excludesZero)
-        ? "at-least-one-pairwise-interval-excludes-zero"
+        ? "at-least-one-unadjusted-pairwise-interval-excludes-zero"
         : "overlapping-or-inconclusive",
+      familyWiseUncertaintyAssessment: resolutionRateDifferenceIntervals95Bonferroni.some(interval => interval.excludesZero)
+        ? "at-least-one-bonferroni-adjusted-pairwise-interval-excludes-zero"
+        : "overlapping-or-inconclusive-after-family-wise-adjustment",
       dominantOutcomeChangesAcrossConditions: dominantOutcomes.size > 1,
       sensitive,
       classification: sensitive ? "context-sensitive" : "stable-across-tested-contexts",
@@ -188,7 +267,7 @@ export function evaluateCounterfactualSensitivity({
       "Sensitivity describes differences observed across supplied context conditions; it does not establish causation.",
       "A stable classification applies only to the tested contexts, fixtures and repetitions.",
       "The resolution-rate threshold is an explicit descriptive policy, not a statistical significance test.",
-      "Pairwise resolution-rate intervals combine independent Wilson intervals conservatively; they are unadjusted for multiple comparisons and are not causal-effect intervals.",
+      "Unadjusted pairwise resolution-rate intervals are exploratory; Bonferroni-adjusted Wilson difference intervals provide conservative 95% family-wise coverage across the tested condition pairs, not causal-effect intervals.",
       "Context conditions should be controlled and documented; unmeasured differences can confound comparisons.",
     ],
   };
