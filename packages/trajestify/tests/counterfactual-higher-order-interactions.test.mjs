@@ -99,7 +99,7 @@ test("higher-order evaluator rejects missing subset replay and duplicate subset 
     experiments,
     combinations: [{
       ...combination,
-      subsets: [...subsetDefinitions.slice(0, -1), { ...subsetDefinitions[0], interventionId: "tax-only" }],
+      subsets: [...subsetDefinitions.slice(0, -1), { interventionId: "shipping-only", componentIds: ["fix-tax"] }],
     }],
   }), /Duplicate proper subset/);
 });
