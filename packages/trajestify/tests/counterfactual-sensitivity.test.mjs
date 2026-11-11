@@ -103,4 +103,15 @@ test("sensitivity evaluator reports pairwise intervals for every condition pair"
     Number.isFinite(item.lower) && Number.isFinite(item.upper) &&
     item.lower <= item.upper && typeof item.excludesZero === "boolean"
   ));
+  assert.equal(fix.resolutionRateDifferenceIntervals95Bonferroni.length, 3);
+  assert.ok(fix.resolutionRateDifferenceIntervals95Bonferroni.every((adjusted, index) => {
+    const nominal = fix.resolutionRateDifferenceIntervals95[index];
+    return adjusted.adjustment === "bonferroni" &&
+      adjusted.familyWiseConfidenceLevel === 0.95 &&
+      adjusted.lower <= nominal.lower && adjusted.upper >= nominal.upper;
+  }));
+  assert.equal(
+    fix.familyWiseUncertaintyAssessment,
+    "overlapping-or-inconclusive-after-family-wise-adjustment",
+  );
 });
